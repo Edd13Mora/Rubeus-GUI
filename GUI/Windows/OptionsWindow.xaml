@@ -1,0 +1,45 @@
+﻿<Window x:Class="RubeusGui.OptionsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:RubeusGui"
+        mc:Ignorable="d"
+        Title="Options" SizeToContent="Height" Width="450" Loaded="Window_Loaded" ResizeMode="CanMinimize" Icon="/RubeusGui;component/Images/icons8_administrative_tools.ico" WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/RubeusGui;component/GlobalStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid Background="{StaticResource WindowBackgroundColor}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="60" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="40" />
+        </Grid.RowDefinitions>
+        <WrapPanel VerticalAlignment="Center" Margin="6">
+            <Image Stretch="None" RenderOptions.BitmapScalingMode="NearestNeighbor" Source="/RubeusGui;component/Images/icons8_administrative_tools.ico"  />
+            <TextBlock  Text="Options" VerticalAlignment="Center" FontSize="18" Margin="4,0,0,0" />
+        </WrapPanel>
+
+        <StackPanel Grid.Row="1" Margin="10,14,8,1">
+            <CheckBox x:Name="ChkRememberLastUsed">
+                <TextBlock  Text="Remember last used domain settings" Margin="4,0" ToolTip="Store the last domain name and username etc you used in an XML file in the current directory (does not store passwords)" />
+            </CheckBox>
+            <CheckBox x:Name="ChkShowAdvanced" Margin="0,12,0,0">
+                <TextBlock Text="Expand advanced options by default" Margin="4,0" ToolTip="Expands the Advanced Options section automatically when you select a tab that contains advanced options" />
+            </CheckBox>
+            <CheckBox x:Name="ChkExpandOutput" Margin="0,12,0,0">
+                <TextBlock Text="Show output window on run" Margin="4,0" ToolTip="Automatically shows the output window when you click Run if it is not already visible" />
+            </CheckBox>
+            <TextBlock Margin="0,14,0,10">If you have suggestions for additional options <Hyperlink x:Name="LnkFeedback" Click="LnkFeedback_Click">let me know</Hyperlink></TextBlock>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="2" Margin="0,0,8,0" HorizontalAlignment="Right" VerticalAlignment="Center">
+            <Button Name="BtnOk" Click="BtnOk_Click" Content="OK" Width="80" Grid.Row="2" Margin="0,0,10,0" Height="23"  />
+            <Button Name="BtnCancel" Click="BtnCancel_Click" IsCancel="True" Content="Cancel" Width="80" Height="23"  />
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,65 @@
+﻿<Window x:Class="RubeusGui.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:RubeusGui"
+        mc:Ignorable="d"
+        Title="About Rubeus GUI" SizeToContent="Height" Width="350" ResizeMode="CanMinimize" Loaded="Window_Loaded" Icon="/RubeusGui;component/Images/icons8_about.ico" WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/RubeusGui;component/GlobalStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid Background="{StaticResource WindowBackgroundColor}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="60" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="40" />
+        </Grid.RowDefinitions>
+        <WrapPanel VerticalAlignment="Center" Margin="6">
+            <Image Stretch="None" RenderOptions.BitmapScalingMode="NearestNeighbor" Source="/RubeusGui;component/Images/icons8_about.ico"  />
+            <TextBlock Text="About Rubeus GUI" VerticalAlignment="Center" FontSize="18" Margin="4,0,0,0" />
+        </WrapPanel>
+        <!--<Border VerticalAlignment="Bottom" Height="1" Background="Gray" />-->
+        <Grid Grid.Row="1" Margin="8,8,8,1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="27" />
+                <RowDefinition Height="27" />
+                <RowDefinition Height="27" />
+                <RowDefinition Height="27" />
+                <RowDefinition Height="27" />
+                <RowDefinition Height="30" />
+            </Grid.RowDefinitions>
+            <TextBlock Text="Version:" VerticalAlignment="Center" Grid.Row="0" />
+            <TextBlock Name="LblVersion" HorizontalAlignment="Left" Margin="8,0,0,0" VerticalAlignment="Center" Grid.Row="0" Grid.Column="1" />
+            <TextBlock Text="Build Date:" VerticalAlignment="Center" Grid.Row="1" />
+            <TextBlock Name="LblBuildDate" HorizontalAlignment="Left" Margin="8,0,0,0" VerticalAlignment="Center" Grid.Row="1" Grid.Column="1" />
+            <TextBlock Text="Me:" VerticalAlignment="Center" Grid.Row="2" Grid.Column="0" />
+            <WrapPanel Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Grid.Row="2" Grid.Column="1">
+                <TextBlock><Hyperlink Name="LnkTwitter" Click="LnkTwitter_Click">@VbScrub</Hyperlink></TextBlock>
+                <TextBlock Margin="14,0,0,0"><Hyperlink Name="LnkWebsite" Click="WebsiteLnk_Click">http://VbScrub.com</Hyperlink></TextBlock>
+            </WrapPanel>
+            <TextBlock Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Grid.Row="3" Grid.Column="1"><Hyperlink Name="LnkGithub" Click="LnkGithub_Click">https://github.com/VbScrub/Rubeus-GUI</Hyperlink></TextBlock>
+            <TextBlock Text="Github:" VerticalAlignment="Center" Grid.Row="3" />
+            <TextBlock Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Grid.Row="3" Grid.Column="1"></TextBlock>
+            <TextBlock Text="Rubeus:" VerticalAlignment="Center" Grid.Row="4" />
+            <TextBlock Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Grid.Row="4" Grid.Column="1"><Hyperlink Name="LnkRubeus" Click="LnkRubeus_Click">https://github.com/GhostPack/Rubeus</Hyperlink></TextBlock>
+            <TextBlock Text="Icons from:" VerticalAlignment="Center" Grid.Row="5" />
+            <TextBlock Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Grid.Row="5" Grid.Column="1"><Hyperlink Name="LnkIcons" Click="LnkIcons_Click">http://icons8.com</Hyperlink></TextBlock>
+
+        </Grid>
+
+
+
+        <Button Name="CloseBtn" Content="Close" Width="75" Grid.Row="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" Height="23" Click="CloseBtn_Click" />
+
+
+    </Grid>
+</Window>

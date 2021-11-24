@@ -1,0 +1,112 @@
+﻿<local:RubeusTab x:Class="RubeusGui.Windows.Tabs.PreAuthTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:RubeusGui.Windows.Tabs"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/RubeusGui;component/GlobalStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid Background="{StaticResource TabBackgroundColor}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="10,14,10,0">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Image Stretch="None" VerticalAlignment="Top" Source="/RubeusGui;component/Images/help_16px.png" />
+                        <StackPanel Margin="4,0,0,0" VerticalAlignment="Top" Grid.Column="1">
+                            <TextBlock x:Name="LblDescription" TextWrapping="Wrap" Margin="0,0,0,3" Visibility="Collapsed">
+                                        If a user has the option "do not require kerberos pre-authentication" enabled on their account then we can request a ticket for that user without knowing their password. 
+                                        The server will respond with an AS-REP message which contains some data encrypted using the user's password. Give that data to a password
+                                        cracker like Hashcat to crack their password
+
+                            </TextBlock>
+                            <TextBlock> <Hyperlink x:Name="LnkHideDescription" Click="LnkHideDescription_Click">Show description</Hyperlink></TextBlock>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,16,3,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                            <Image Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/target_16px.png" />
+                            <TextBlock Text="Target: " VerticalAlignment="Center" Margin="3,0,6,0" />
+                        </StackPanel>
+                        <WrapPanel Grid.Column="1">
+                            <StackPanel Margin="0,1,0,0">
+                                <RadioButton x:Name="RdoAllUsers" IsChecked="True" VerticalAlignment="Center" VerticalContentAlignment="Center" GroupName="TargetUsers">
+                                    <TextBlock Text="All vulnerable users" />
+                                </RadioButton>
+                                <StackPanel Orientation="Horizontal"  Margin="0,8,0,0">
+                                    <RadioButton x:Name="RdoSpecificUser" VerticalAlignment="Center" Checked="RdoSpecificUser_Checked" Unchecked="RdoSpecificUser_Unchecked" VerticalContentAlignment="Center" GroupName="TargetUsers" >
+                                        <TextBlock Text="Only this username:" />
+                                    </RadioButton>
+                                    <TextBox x:Name="TxtUsername" Height="22" Width="120" IsEnabled="False" Margin="4,0,0,0" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal"  Margin="0,7,0,0">
+                                    <RadioButton x:Name="RdoSpecificOu" VerticalAlignment="Center" VerticalContentAlignment="Center" GroupName="TargetUsers" Checked="RdoSpecificOu_Checked" Unchecked="RdoSpecificOu_Unchecked">
+                                        <TextBlock Text="Only users in this OU:" />
+                                    </RadioButton>
+                                    <TextBox x:Name="TxtOu" ToolTip="The distinguished name for the OU (e.g OU=Users,DC=mydomain,DC=local)" IsEnabled="False" Height="22" Width="320" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+                        </WrapPanel>
+                        <!--<StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,16,0,0" Grid.Row="1">
+                            <Image Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/adjust_16px.png" />
+                            <TextBlock Text="Options: " VerticalAlignment="Center" Margin="3,0,6,0" />
+                        </StackPanel>-->
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top"  Margin="0,17,0,0" Grid.Row="1">
+                            <Image Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/new_document_16px.png" />
+                            <TextBlock Text="Format: " VerticalAlignment="Center" Margin="3,0,6,0" />
+                        </StackPanel>
+                        <WrapPanel Grid.Row="1" Grid.Column="1" Margin="0,18,0,0">
+                            <StackPanel>
+                                <RadioButton x:Name="RdoHashcat" IsChecked="True" >
+                                    <TextBlock Text="Hashcat" />
+                                </RadioButton>
+                                <RadioButton x:Name="RdoJohn" Margin="0,11,0,0">
+                                    <TextBlock Text="John The Ripper" />
+                                </RadioButton>
+                            </StackPanel>
+                        </WrapPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,17,0,10" >
+                            <WrapPanel>
+                                <CheckBox x:Name="ChkOutputFile" VerticalContentAlignment="Center" VerticalAlignment="Center" Margin="0,0,4,0">
+                                    <TextBlock Margin="4,0" Text="Output hashes to file:" />
+                                </CheckBox>
+                                <TextBox x:Name="TxtOutputFilePath" Width="250" Height="22" Margin="0,0,4,0" VerticalAlignment="Top" IsEnabled="{Binding ElementName=ChkOutputFile,Path=IsChecked}" />
+                                <Button x:Name="BtnOutputFileBrowse" Padding="10,0,10,0" Height="22" VerticalAlignment="Top" IsEnabled="{Binding ElementName=ChkOutputFile,Path=IsChecked}" Click="BtnOutputFileBrowse_Click">
+                                    <TextBlock Text="Browse" />
+                                </Button>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+                <!--<Expander Margin="-2,20,0,20">
+                    <Expander.Header>
+                        <TextBlock Text="Advanced Options" />
+                    </Expander.Header>
+                    <StackPanel Margin="20,12,0,0">
+                        
+                    </StackPanel>
+                </Expander>-->
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</local:RubeusTab>

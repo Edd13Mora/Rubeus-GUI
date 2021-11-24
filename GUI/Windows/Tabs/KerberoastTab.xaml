@@ -1,0 +1,178 @@
+﻿<local:RubeusTab x:Class="RubeusGui.Windows.Tabs.KerberoastTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:RubeusGui.Windows.Tabs"
+             mc:Ignorable="d" 
+             d:DesignHeight="650" d:DesignWidth="900" Loaded="RubeusTab_Loaded" >
+    <local:RubeusTab.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/RubeusGui;component/GlobalStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </local:RubeusTab.Resources>
+    <Grid Background="{StaticResource TabBackgroundColor}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="10,14,10,0">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Image Stretch="None" VerticalAlignment="Top" Source="/RubeusGui;component/Images/help_16px.png" />
+                        <StackPanel Margin="4,0,0,0" VerticalAlignment="Top" Grid.Column="1">
+                            <TextBlock x:Name="LblDescription" TextWrapping="Wrap" Margin="0,0,0,3" Visibility="Collapsed">
+                                        If a user account has an SPN assigned to it then we can request a ticket for that SPN and the ticket will be encrypted with that user account's password. 
+                                        Kerberoasting requests those tickets and outputs them in a format we can pass to a tool like Hashcat to crack the passwords offline.
+                            </TextBlock>
+                            <TextBlock> <Hyperlink x:Name="LnkHideDescription" Click="LnkHideDescription_Click">Show description</Hyperlink></TextBlock>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,16,3,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                            <Image Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/target_16px.png" />
+                            <TextBlock Text="Target: " VerticalAlignment="Center" Margin="3,0,6,0" />
+                        </StackPanel>
+                        <WrapPanel Grid.Column="1">
+                            <StackPanel Margin="0,1,0,0">
+                                <RadioButton x:Name="RdoKerberoastAllUsers" IsChecked="True" VerticalAlignment="Center" VerticalContentAlignment="Center" GroupName="KerberoastUsers">
+                                    <TextBlock Text="All users with an SPN" />
+                                </RadioButton>
+                                <StackPanel Orientation="Horizontal"  Margin="0,8,0,0">
+                                    <RadioButton x:Name="RdoKerberoastSpecificUser" VerticalAlignment="Center" VerticalContentAlignment="Center" GroupName="KerberoastUsers" Checked="RdoKerberoastSpecificUser_Checked" Unchecked="RdoKerberoastSpecificUser_Unchecked">
+                                        <TextBlock Text="Only this username:" />
+                                    </RadioButton>
+                                    <TextBox x:Name="TxtKerberosSpecificUsername" Height="22" Width="120" IsEnabled="False" Margin="4,0,0,0" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal"  Margin="0,7,0,0">
+                                    <RadioButton x:Name="RdoKerberoastSpecificSpn" Checked="RdoKerberoastSpecificSpn_Checked" Unchecked="RdoKerberoastSpecificSpn_Unchecked" VerticalAlignment="Center" VerticalContentAlignment="Center" GroupName="KerberoastUsers">
+                                        <TextBlock Text="Only these SPNs:" />
+                                    </RadioButton>
+                                    <TextBox x:Name="TxtKerberosSpecificSpnName" ToolTip="Separate multiple SPNs with a comma" IsEnabled="False" Height="22" Width="190" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+                        </WrapPanel>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,16,0,0" Grid.Row="1">
+                            <Image Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/adjust_16px.png" />
+                            <TextBlock Text="Options: " VerticalAlignment="Center" Margin="3,0,6,0" />
+                        </StackPanel>
+                        <StackPanel  Grid.Row="1" Grid.Column="1" Margin="0,16,0,0">
+                            <CheckBox x:Name="ChkStatsOnly" VerticalContentAlignment="Center">
+                                <TextBlock Margin="4,0" Text="Do not request tickets (just show search result stats)" />
+                            </CheckBox>
+                            <WrapPanel Margin="0,8,0,0">
+                                <CheckBox x:Name="ChkOutputFile" VerticalContentAlignment="Center" VerticalAlignment="Center" Margin="0,0,4,0">
+                                    <TextBlock Margin="4,0" Text="Output hashes to file:" />
+                                </CheckBox>
+                                <TextBox x:Name="TxtOutputFilePath" Width="250" Height="22" Margin="0,0,4,0" IsEnabled="{Binding ElementName=ChkOutputFile,Path=IsChecked}" />
+                                <Button x:Name="BtnOutputFileBrowse" Padding="10,0,10,0" IsEnabled="{Binding ElementName=ChkOutputFile,Path=IsChecked}" Click="BtnOutputFileBrowse_Click">
+                                    <TextBlock Text="Browse" />
+                                </Button>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+                <Expander Margin="-2,20,0,20" x:Name="ExpAdvanced">
+                    <Expander.Header>
+                        <TextBlock Text="Advanced Options" />
+                    </Expander.Header>
+                    <StackPanel Margin="20,12,0,0">
+                        <WrapPanel Margin="0,0,0,0">
+                            <TextBlock Text="LDAP filter:" VerticalAlignment="Center" />
+                            <TextBox x:Name="TxtLdapFilter" Width="300" Height="22" Margin="25,0,4,0" />
+                        </WrapPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0" x:Name="PanelTgt">
+                            <TextBlock Text="Use TGT from: " VerticalAlignment="Top" />
+                            <StackPanel Margin="6,1,0,0" VerticalAlignment="Top" HorizontalAlignment="Stretch">
+                                <RadioButton Height="22" IsChecked="True" GroupName="TGT" x:Name="RdoTgtDefault" ToolTip="Service tickets will be encrypted with the strongest encryption available for the service user account (RC4 unless an admin has explicitly enabled AES on that account)">
+                                    <TextBlock Text="Normal request" />
+                                </RadioButton>
+                                <RadioButton Margin="0,4,0,0" x:Name="RdoTgtDeleg" VerticalContentAlignment="Center" GroupName="TGT" ToolTip="Uses a fake delegation request to get a TGT for the current user, so we can request all service tickets downgrade to RC4 encryption even if the account supports AES (on pre-2019 DCs)">
+                                    <TextBlock Text="TGT delegation trick" />
+                                </RadioButton>
+                                <WrapPanel Margin="0,10,0,0">
+                                    <RadioButton x:Name="RdoTgtFromFile" VerticalContentAlignment="Center" GroupName="TGT">
+                                        <TextBlock Text="File: " />
+                                    </RadioButton>
+                                    <TextBox x:Name="TxtTgtPath" Width="320" Height="22" Margin="4,0" IsEnabled="{Binding ElementName=RdoTgtFromFile,Path=IsChecked}" ToolTip="Path to KIRBI file" />
+                                    <Button x:Name="BtnTgtBrowse" Padding="10,0,10,0" IsEnabled="{Binding ElementName=RdoTgtFromFile,Path=IsChecked}" Click="BtnTgtBrowse_Click">
+                                        <TextBlock Text="Browse" />
+                                    </Button>
+                                </WrapPanel>
+                                <DockPanel Margin="0,8,0,0">
+                                    <RadioButton x:Name="RdoTgtBase64" VerticalContentAlignment="Center" GroupName="TGT" DockPanel.Dock="Left">
+                                        <TextBlock Text="Base64: " />
+                                    </RadioButton>
+                                    <TextBox x:Name="TxtTgtBase64" Height="22" Margin="4,0,0,0" IsEnabled="{Binding ElementName=RdoTgtBase64,Path=IsChecked}" ToolTip="Base64 representation of TGT" />
+                                </DockPanel>
+                                
+                            </StackPanel>
+                        </StackPanel>
+                        <CheckBox x:Name="ChkAes" VerticalContentAlignment="Center" Margin="0,8,0,0" Height="22">
+                            <TextBlock Margin="4,0" Text="Only find users with AES encryption enabled" />
+                        </CheckBox>
+                        <CheckBox x:Name="ChkRc4opsec" Margin="0,8,0,0" Height="22" VerticalContentAlignment="Center" Checked="ChkRc4opsec_Checked" Unchecked="ChkRc4opsec_Unchecked" ToolTip="Uses TGT delegation trick and excludes AES enabled accounts">
+                            <TextBlock Text="RC4 Opsec mode" Margin="4,0,0,0" />
+                        </CheckBox>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <CheckBox x:Name="ChkDelay" VerticalContentAlignment="Center" Height="22">
+                                <TextBlock Margin="4,0" Text="Add delay between ticket requests: " />
+                            </CheckBox>
+                            <StackPanel Orientation="Horizontal" IsEnabled="{Binding ElementName=ChkDelay,Path=IsChecked}">
+                                <TextBox x:Name="TxtDelay" Width="45" Height="22" Margin="2,0,0,0" />
+                                <TextBlock Text="milliseconds" VerticalAlignment="Center" Margin="4,0,0,0" />
+                                <TextBlock Text="Jitter (%) :" VerticalAlignment="Center" Margin="18,0,0,0" />
+                                <TextBox x:Name="TxtJitter" Text="20" Width="33"  Height="22" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <CheckBox x:Name="ChkLimitResults" VerticalContentAlignment="Center" Height="22">
+                                <TextBlock Margin="4,0" Text="Maximum number of tickets to return:" />
+                            </CheckBox>
+                            <StackPanel Orientation="Horizontal" IsEnabled="{Binding ElementName=ChkLimitResults,Path=IsChecked}">
+                                <TextBox x:Name="TxtResultsLimit" Width="35" Height="22" Margin="2,0,0,0" />
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <TextBlock Text="Principal type: " />
+                            <StackPanel Margin="6,1,0,0">
+                                <RadioButton IsChecked="True" ToolTip="Uses the standard NT-SRV-INST or NT-SRV-HST principal type" Height="22">
+                                    <TextBlock Text="Standard" />
+                                </RadioButton>
+                                <RadioButton x:Name="RdoEnterprise" Margin="0,4,0,0" Height="22" ToolTip="Uses the NT-ENTERPRISE principal type, which supports more naming formats. Requires an SPN be specified as target and a manual TGT mode be selected" >
+                                    <TextBlock Text="Enterprise" />
+                                </RadioButton>
+                                <RadioButton x:Name="RdoAutoEnterprise" Margin="0,5,0,0" Height="22" ToolTip="Uses the standard principal type first and then tries NT-ENTERPRISE if that fails" >
+                                    <TextBlock Text="Use enterprise if standard fails" />
+                                </RadioButton>
+                            </StackPanel>
+                        </StackPanel>
+                        
+                        
+                        
+
+                        <!--<TextBlock Margin="0,8,0,0" TextWrapping="Wrap">
+                            More options coming soon. Check for updates here:
+                            <Hyperlink x:Name="LnkRubeusGuiGithub" Click="LnkRubeusGuiGithub_Click" Foreground="{StaticResource ForegroundLinkColor}">https://github.com/VbScrub/Rubeus-GUI</Hyperlink>
+                        </TextBlock>-->
+                    </StackPanel>
+
+
+                </Expander>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</local:RubeusTab>
