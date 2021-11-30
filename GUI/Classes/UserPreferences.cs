@@ -21,8 +21,7 @@ namespace RubeusGui
         // Settings from Tools -> Options
         public bool ShowAdvancedOptionsByDefault { get; set; }
         public bool SaveMru { get; set; } = true;
-        public bool ExpandOutputOnRun { get; set; } = true;
-        
+                
         static public void SavePreferences(UserPreferences prefs)
         {
             using (FileStream stream = new FileStream(XmlFilePath, FileMode.Create))

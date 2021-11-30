@@ -14,21 +14,8 @@ namespace Rubeus
         public static void Execute(string userName, string domain, string keyString, Interop.KERB_ETYPE etype, string targetUser, string targetSPN = "", string outfile = "", bool ptt = false, string domainController = "", string altService = "", KRB_CRED tgs = null, string targetDomainController = "", string targetDomain = "", bool self = false, bool opsec = false, bool bronzebit = false)
         {
             // first retrieve a TGT for the user
-            byte[] kirbiBytes = Ask.TGT(userName, domain, keyString, etype, null, false, domainController, new LUID(), false, opsec);
-
-            if (kirbiBytes == null)
-            {
-                Console.WriteLine("[X] Error retrieving a TGT with the supplied parameters");
-                return;
-            }
-            else
-            {
-                Console.WriteLine("\r\n");
-            }
-
-            // transform the TGT bytes into a .kirbi file
-            KRB_CRED kirbi = new KRB_CRED(kirbiBytes);
-
+            KRB_CRED kirbi = Ask.TGT(userName, domain, keyString, etype, null, false, domainController, new LUID(), false, opsec);
+            
             // execute the s4u process
             Execute(kirbi, targetUser, targetSPN, outfile, ptt, domainController, altService, tgs, targetDomainController, targetDomain, self, opsec, bronzebit, keyString, etype);
         }

@@ -24,10 +24,8 @@ namespace RubeusGui
         {
             try
             {
-               
                 ChkRememberLastUsed.IsChecked = this.UserPrefs.SaveMru;
                 ChkShowAdvanced.IsChecked = this.UserPrefs.ShowAdvancedOptionsByDefault;
-                ChkExpandOutput.IsChecked = this.UserPrefs.ExpandOutputOnRun;
             }
             catch (Exception ex)
             {
@@ -47,7 +45,6 @@ namespace RubeusGui
                 UserPreferences newPrefs = new UserPreferences();
                 newPrefs.SaveMru = (bool)ChkRememberLastUsed.IsChecked;
                 newPrefs.ShowAdvancedOptionsByDefault = (bool)ChkShowAdvanced.IsChecked;
-                newPrefs.ExpandOutputOnRun = (bool)ChkExpandOutput.IsChecked;
                 if (newPrefs.SaveMru)
                 {
                     newPrefs.Domain = this.UserPrefs.Domain;

@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:RubeusGui.Windows.Tabs"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="450" d:DesignWidth="950">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -15,39 +15,33 @@
     </UserControl.Resources>
     <Grid Background="{StaticResource TabBackgroundColor}">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="10,14,10,0">
-                <StackPanel>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Image Stretch="None" VerticalAlignment="Top" Source="/RubeusGui;component/Images/help_16px.png" />
-                        <StackPanel Margin="4,0,0,0" VerticalAlignment="Top" Grid.Column="1">
-                            <TextBlock x:Name="LblDescription" TextWrapping="Wrap" Margin="0,0,0,3" Visibility="Collapsed">
+            <DockPanel Margin="10,14,10,0">
+                <StackPanel DockPanel.Dock="Top">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Image Stretch="None" VerticalAlignment="Top" Source="/RubeusGui;component/Images/help_16px.png" />
+                            <StackPanel Margin="4,0,0,0" VerticalAlignment="Top" Grid.Column="1">
+                                <TextBlock x:Name="LblDescription" TextWrapping="Wrap" Margin="0,0,0,3" Visibility="Collapsed">
                                         If a user has the option "do not require kerberos pre-authentication" enabled on their account then we can request a ticket for that user without knowing their password. 
                                         The server will respond with an AS-REP message which contains some data encrypted using the user's password. Give that data to a password
                                         cracker like Hashcat to crack their password
 
-                            </TextBlock>
-                            <TextBlock> <Hyperlink x:Name="LnkHideDescription" Click="LnkHideDescription_Click">Show description</Hyperlink></TextBlock>
-                        </StackPanel>
-                    </Grid>
-                    <Grid Margin="0,16,3,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
-                            <Image Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/target_16px.png" />
-                            <TextBlock Text="Target: " VerticalAlignment="Center" Margin="3,0,6,0" />
-                        </StackPanel>
-                        <WrapPanel Grid.Column="1">
+                                </TextBlock>
+                                <TextBlock> <Hyperlink x:Name="LnkHideDescription" Click="LnkHideDescription_Click">Show description</Hyperlink></TextBlock>
+                            </StackPanel>
+                        </Grid>
+                        <DockPanel Margin="0,14,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Image Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/target_16px.png" />
+                                <TextBlock Text="Target:" Margin="4,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <Border HorizontalAlignment="Stretch" Margin="8,0,0,0" Height="1" VerticalAlignment="Center" Background="{StaticResource SeparatorBorderColor}" />
+                        </DockPanel>
+                        <WrapPanel Margin="24,10,0,0" >
                             <StackPanel Margin="0,1,0,0">
                                 <RadioButton x:Name="RdoAllUsers" IsChecked="True" VerticalAlignment="Center" VerticalContentAlignment="Center" GroupName="TargetUsers">
                                     <TextBlock Text="All vulnerable users" />
@@ -56,57 +50,101 @@
                                     <RadioButton x:Name="RdoSpecificUser" VerticalAlignment="Center" Checked="RdoSpecificUser_Checked" Unchecked="RdoSpecificUser_Unchecked" VerticalContentAlignment="Center" GroupName="TargetUsers" >
                                         <TextBlock Text="Only this username:" />
                                     </RadioButton>
-                                    <TextBox x:Name="TxtUsername" Height="22" Width="120" IsEnabled="False" Margin="4,0,0,0" />
+                                    <TextBox x:Name="TxtUsername" Height="22" Width="150" IsEnabled="False" Margin="4,0,0,0" />
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal"  Margin="0,7,0,0">
                                     <RadioButton x:Name="RdoSpecificOu" VerticalAlignment="Center" VerticalContentAlignment="Center" GroupName="TargetUsers" Checked="RdoSpecificOu_Checked" Unchecked="RdoSpecificOu_Unchecked">
                                         <TextBlock Text="Only users in this OU:" />
                                     </RadioButton>
-                                    <TextBox x:Name="TxtOu" ToolTip="The distinguished name for the OU (e.g OU=Users,DC=mydomain,DC=local)" IsEnabled="False" Height="22" Width="320" Margin="4,0,0,0" />
+                                    <TextBox x:Name="TxtOu" ToolTip="The distinguished name for the OU (e.g OU=Users,DC=mydomain,DC=local)" IsEnabled="False" Height="22" Width="350" Margin="4,0,0,0" />
                                 </StackPanel>
                             </StackPanel>
                         </WrapPanel>
-                        <!--<StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,16,0,0" Grid.Row="1">
-                            <Image Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/adjust_16px.png" />
-                            <TextBlock Text="Options: " VerticalAlignment="Center" Margin="3,0,6,0" />
-                        </StackPanel>-->
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top"  Margin="0,17,0,0" Grid.Row="1">
-                            <Image Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/new_document_16px.png" />
-                            <TextBlock Text="Format: " VerticalAlignment="Center" Margin="3,0,6,0" />
-                        </StackPanel>
-                        <WrapPanel Grid.Row="1" Grid.Column="1" Margin="0,18,0,0">
-                            <StackPanel>
-                                <RadioButton x:Name="RdoHashcat" IsChecked="True" >
-                                    <TextBlock Text="Hashcat" />
-                                </RadioButton>
-                                <RadioButton x:Name="RdoJohn" Margin="0,11,0,0">
-                                    <TextBlock Text="John The Ripper" />
-                                </RadioButton>
+                        <DockPanel Margin="0,14,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Image Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/adjust_16px.png" />
+                                <TextBlock Text="Options:" Margin="4,0,0,0" VerticalAlignment="Center" />
                             </StackPanel>
+                            <Border HorizontalAlignment="Stretch" Margin="8,0,0,0" Height="1" VerticalAlignment="Center" Background="{StaticResource SeparatorBorderColor}" />
+                        </DockPanel>
+                        <WrapPanel Margin="25,10,0,0">
+                            <TextBlock Text="Hash format: " VerticalAlignment="Center" />
+                            <RadioButton x:Name="RdoHashcat" IsChecked="True" Margin="6,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="Hashcat" />
+                            </RadioButton>
+                            <RadioButton x:Name="RdoJohn" Margin="14,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="John The Ripper" />
+                            </RadioButton>
                         </WrapPanel>
-                        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,17,0,10" >
-                            <WrapPanel>
-                                <CheckBox x:Name="ChkOutputFile" VerticalContentAlignment="Center" VerticalAlignment="Center" Margin="0,0,4,0">
-                                    <TextBlock Margin="4,0" Text="Output hashes to file:" />
-                                </CheckBox>
-                                <TextBox x:Name="TxtOutputFilePath" Width="250" Height="22" Margin="0,0,4,0" VerticalAlignment="Top" IsEnabled="{Binding ElementName=ChkOutputFile,Path=IsChecked}" />
-                                <Button x:Name="BtnOutputFileBrowse" Padding="10,0,10,0" Height="22" VerticalAlignment="Top" IsEnabled="{Binding ElementName=ChkOutputFile,Path=IsChecked}" Click="BtnOutputFileBrowse_Click">
-                                    <TextBlock Text="Browse" />
-                                </Button>
-                            </WrapPanel>
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
-                <!--<Expander Margin="-2,20,0,20">
-                    <Expander.Header>
-                        <TextBlock Text="Advanced Options" />
-                    </Expander.Header>
-                    <StackPanel Margin="20,12,0,0">
-                        
+                        <WrapPanel Margin="0,28,0,0" HorizontalAlignment="Left" DockPanel.Dock="Bottom">
+                            <Button x:Name="BtnExecute" Width="130" Height="23" Click="BtnExecute_Click" ToolTip="Runs a Rubeus operation based on the currently selected tab" >
+                                <StackPanel Orientation="Horizontal" Margin="-2,0,0,0">
+                                    <Image x:Name="ImgExecuteBtn" Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/play_16px.png" Margin="0,0,4,0" />
+                                    <TextBlock x:Name="LblExecuteBtn" Text="Run" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <ProgressBar x:Name="ProgBar" Visibility="Collapsed" Margin="10,0" IsIndeterminate="True" Width="200" Height="19" Background="{StaticResource TabBackgroundColor}" BorderBrush="#FF3F3F40" />
+                        </WrapPanel>
+                        <TextBlock x:Name="LblResults" Text="Results:" Margin="0,20,0,0" IsEnabled="False" />
                     </StackPanel>
-                </Expander>-->
+                </StackPanel>
+                <WrapPanel x:Name="PnlExport" IsEnabled="False" DockPanel.Dock="Bottom" HorizontalAlignment="Left" Margin="0,8,0,12">
+                    <Button x:Name="BtnExportHashes"  Height="23" Width="130" ToolTip="Save all hashes from results table to text file" Click="BtnExportHashes_Click">
+                        <TextBlock Text="Export Hashes" />
+                    </Button>
+                    <Button x:Name="BtnExportAll" Margin="10,0,0,0" Height="23" Width="130" ToolTip="Save entire results table to CSV file" Click="BtnExportAll_Click">
+                        <TextBlock Text="Export Results" />
+                    </Button>
+                </WrapPanel>
 
-            </StackPanel>
+                <ListView x:Name="LsvResults" Margin="0,5,0,0" MinHeight="70" SelectionMode="Single" IsEnabled="False">
+                    <ListView.ContextMenu>
+                        <ContextMenu x:Name="CtxResultsListView" Opened="CtxResultsListView_Opened" >
+                            <MenuItem x:Name="CtxItemCopyHash" Header="Copy Hash" Click="CtxItemCopyHash_Click" />
+                            <MenuItem x:Name="CtxItemCopyUsername" Header="Copy Username" Click="CtxItemCopyUsername_Click" />
+                            <MenuItem x:Name="CtxItemCopyDn" Header="Copy Distinguished Name" Click="CtxItemCopyDn_Click" />
+                            <Separator />
+                            <MenuItem x:Name="CtxItemExportHashes" Header="Export All Hashes" Click="CtxItemExportHashes_Click" />
+                            <MenuItem x:Name="CtxItemExportAll" Header="Export All Results" Click="CtxItemExportAll_Click" />
+                        </ContextMenu>
+                    </ListView.ContextMenu>
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Username" Width="150">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <DockPanel>
+                                            <Image Stretch="None" DockPanel.Dock="Left" VerticalAlignment="Center" Source="/RubeusGui;component/Images/male_user_16px.png" />
+                                            <TextBlock Text="{Binding Username}" TextOptions.TextFormattingMode="Display" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource ForegroundTextColor}" TextTrimming="CharacterEllipsis" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="Hash" Width="450">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding HashData.Hash}" TextOptions.TextFormattingMode="Display" Foreground="{StaticResource ForegroundTextColor}" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <!--<GridViewColumn Header="Hash Encrypted With" Width="145">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock HorizontalAlignment="Center" Text="{Binding HashData.EncryptionString}" TextOptions.TextFormattingMode="Display" Foreground="{StaticResource ForegroundTextColor}" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>-->
+                            <GridViewColumn Header="Distinguished Name" Width="280">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding DistinguishedName}" TextOptions.TextFormattingMode="Display" Foreground="{StaticResource ForegroundTextColor}" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </DockPanel>
         </ScrollViewer>
     </Grid>
 </local:RubeusTab>

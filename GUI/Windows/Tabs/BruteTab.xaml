@@ -1,0 +1,177 @@
+﻿<local:RubeusTab x:Class="RubeusGui.Windows.Tabs.BruteTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:RubeusGui.Windows.Tabs"
+             mc:Ignorable="d" 
+             d:DesignHeight="550" d:DesignWidth="990">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/RubeusGui;component/GlobalStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid Background="{StaticResource TabBackgroundColor}">
+        <DockPanel Margin="10,14,10,0">
+            <StackPanel DockPanel.Dock="Top">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Image Stretch="None" VerticalAlignment="Top" Source="/RubeusGui;component/Images/help_16px.png" />
+                    <StackPanel Margin="4,0,0,0" VerticalAlignment="Top" Grid.Column="1">
+                        <TextBlock x:Name="LblDescription" TextWrapping="Wrap" Margin="0,0,0,3" Visibility="Collapsed">
+                                        Supply a list of usernames to see which ones exist in the domain, without requiring you to have any valid domain credentials. If you supply a list of passwords as well then each password will be tried with each username to find valid credentials.
+                        </TextBlock>
+                        <TextBlock> <Hyperlink x:Name="LnkHideDescription" Click="LnkHideDescription_Click">Show description</Hyperlink></TextBlock>
+                    </StackPanel>
+                </Grid>
+                <DockPanel Margin="0,14,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Stretch="None" VerticalAlignment="Center" Source="/Images/male_user_16px.png" />
+                        <TextBlock Text="Usernames:" Margin="4,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Border HorizontalAlignment="Stretch" Margin="8,0,0,0" Height="1" VerticalAlignment="Center" Background="{StaticResource SeparatorBorderColor}" />
+                </DockPanel>
+
+                <StackPanel Margin="24,10,0,0">
+                    <WrapPanel>
+                        <RadioButton x:Name="RdoSingleUsername" IsChecked="True" VerticalAlignment="Center" GroupName="Usernames">
+                            <TextBlock Text="Single username:" />
+                        </RadioButton>
+                        <TextBox x:Name="TxtSingleUsername" Width="160" Height="22" Margin="5,0,0,0" IsEnabled="{Binding ElementName=RdoSingleUsername,Path=IsChecked}" ToolTip="Usernames are case sensitive (hopefully will change in future version)" />
+                    </WrapPanel>
+                    <WrapPanel Margin="0,8,0,0">
+                        <RadioButton x:Name="RdoUsernamesFromFile" VerticalAlignment="Center" GroupName="Usernames">
+                            <TextBlock Text="Usernames from file:" />
+                        </RadioButton>
+                        <TextBox x:Name="TxtUsernameList" Width="290" Height="22" Margin="5,0,0,0" IsEnabled="{Binding ElementName=RdoUsernamesFromFile,Path=IsChecked}" ToolTip="Each username should be on its own line in the text file. Usernames are case sensitive" />
+                        <Button x:Name="BtnBrowseUsernameList" Click="BtnBrowseUsernameList_Click" Width="75" Margin="5,0,0,0" IsEnabled="{Binding ElementName=RdoUsernamesFromFile,Path=IsChecked}">
+                            <TextBlock Text="Browse" />
+                        </Button>
+                    </WrapPanel>
+                    <RadioButton x:Name="RdoUsernamesFromDomain" Margin="0,11,0,0" VerticalAlignment="Center" GroupName="Usernames" ToolTip="In most domains this will require valid domain credentials to perform the LDAP search (unlike the other methods)">
+                        <TextBlock Text="Get all domain usernames from LDAP search" />
+                    </RadioButton>
+                    <CheckBox x:Name="ChkParallel" Margin="0,18,0,0" IsChecked="True" ToolTip="Use multithreading to test credentials for multiple users at the same time (should be faster but depends on hardware)">
+                        <TextBlock Text="Process multiple users in parallel" Margin="3,0,0,0" />
+                    </CheckBox>
+                </StackPanel>
+
+                <DockPanel Margin="0,16,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Stretch="None" VerticalAlignment="Center" Source="/Images/list_16px.png" />
+                        <TextBlock Text="Passwords:" Margin="4,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Border HorizontalAlignment="Stretch" Margin="8,0,0,0" Height="1" VerticalAlignment="Center" Background="{StaticResource SeparatorBorderColor}" />
+                </DockPanel>
+
+                <StackPanel Margin="24,12,0,0">
+                    <RadioButton x:Name="RdoNoPasswords" IsChecked="True" VerticalAlignment="Center" GroupName="Passwords">
+                        <TextBlock Text="No passwords (just validate usernames)" />
+                    </RadioButton>
+                    <WrapPanel Margin="0,9,0,0">
+                        <RadioButton x:Name="RdoSinglePassword" VerticalAlignment="Center" GroupName="Passwords">
+                            <TextBlock Text="Single password:" />
+                        </RadioButton>
+                        <TextBox x:Name="TxtSinglePassword" Width="160" Height="22" Margin="5,0,0,0" IsEnabled="{Binding ElementName=RdoSinglePassword,Path=IsChecked}" />
+                    </WrapPanel>
+                    <WrapPanel Margin="0,8,0,0">
+                        <RadioButton x:Name="RdoPasswordsFromFile" VerticalAlignment="Center" GroupName="Passwords">
+                            <TextBlock Text="Passwords from file:" />
+                        </RadioButton>
+                        <TextBox x:Name="TxtPasswordList" Width="290" Height="22" Margin="5,0,0,0" IsEnabled="{Binding ElementName=RdoPasswordsFromFile,Path=IsChecked}" ToolTip="Each password should be on its own line in the text file" />
+                        <Button x:Name="BtnBrowsePasswordList" Click="BtnBrowsePasswordList_Click" Width="75" Margin="5,0,0,0" IsEnabled="{Binding ElementName=RdoPasswordsFromFile,Path=IsChecked}">
+                            <TextBlock Text="Browse" />
+                        </Button>
+                    </WrapPanel>
+                </StackPanel>
+
+                <WrapPanel Margin="0,28,0,0" HorizontalAlignment="Left" DockPanel.Dock="Bottom">
+                    <Button x:Name="BtnExecute" Width="130" Height="23" Click="BtnExecute_Click" ToolTip="Runs a Rubeus operation based on the currently selected tab" >
+                        <StackPanel Orientation="Horizontal" Margin="-2,0,0,0">
+                            <Image x:Name="ImgExecuteBtn" Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/play_16px.png" Margin="0,0,4,0" />
+                            <TextBlock x:Name="LblExecuteBtn" Text="Run" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="BtnCancel" Width="110" Visibility="Collapsed" Margin="10,0,0,0" Height="23" Click="BtnCancel_Click">
+                        <TextBlock Text="Cancel" />
+                    </Button>
+                    <ProgressBar x:Name="ProgBar" Visibility="Collapsed" Margin="10,0" IsIndeterminate="True" Width="200" Height="20" Background="{StaticResource TabBackgroundColor}" BorderBrush="#FF3F3F40" />
+                </WrapPanel>
+
+                <WrapPanel Margin="0,24,0,0" x:Name="PnlFilters" IsEnabled="False">
+                    <TextBlock Text="Results filter: " VerticalAlignment="Center" />
+                    <CheckBox x:Name="ChkFilterAll" IsChecked="False" Margin="6,0,10,0" Checked="ChkFilterAll_Checked" Unchecked="ChkFilterAll_Unchecked">
+                        <TextBlock Text="All" Margin="3,0,0,0" />
+                    </CheckBox>
+                    <WrapPanel x:Name="PnlSubFilters" >
+                        <CheckBox x:Name="ChkFilterValidCreds" IsChecked="True" Margin="6,0,10,0" Checked="UpdateFilter" Unchecked="UpdateFilter">
+                            <TextBlock Text="Valid credentials" Margin="3,0,0,0" />
+                        </CheckBox>
+                        <CheckBox x:Name="ChkFilterValidUsernames" IsChecked="True" Margin="6,0,10,0" Checked="UpdateFilter" Unchecked="UpdateFilter" ToolTip="Valid usernames (both with and without valid passwords)">
+                            <TextBlock Text="Valid usernames" Margin="3,0,0,0" />
+                        </CheckBox>
+                        <CheckBox x:Name="ChkFilterErrors" IsChecked="True" Margin="6,0,10,0" Checked="UpdateFilter" Unchecked="UpdateFilter">
+                            <TextBlock Text="Errors" Margin="3,0,0,0" />
+                        </CheckBox>
+                        <CheckBox x:Name="ChkFilterInvalidUsernames" IsChecked="False" Margin="6,0,10,0" Checked="UpdateFilter" Unchecked="UpdateFilter">
+                            <TextBlock Text="Invalid usernames" Margin="3,0,0,0" />
+                        </CheckBox>
+                    </WrapPanel>
+
+                </WrapPanel>
+            </StackPanel>
+            <ListView x:Name="LsvResults" Margin="0,10,0,10" MinHeight="70" SelectionMode="Single" IsEnabled="False">
+                <ListView.ContextMenu>
+                    <ContextMenu x:Name="CtxResultsListView">
+                        <MenuItem x:Name="CtxItemCopyUsernameAndPassword" Header="Copy Username &amp; Password" Click="CtxItemCopyUsernameAndPassword_Click" />
+                        <Separator />
+                        <MenuItem x:Name="CtxItemCopyUsername" Header="Copy Username" Click="CtxItemCopyUsername_Click" />
+                        <MenuItem x:Name="CtxItemCopyPassword" Header="Copy Password" Click="CtxItemCopyPassword_Click" />
+                        <MenuItem x:Name="CtxItemCopyTgt" Header="Copy TGT" Click="CtxItemCopyTgt_Click" />
+                        <MenuItem x:Name="CtxItemDetails" Header="Copy Details" Click="CtxItemDetails_Click" />
+                    </ContextMenu>
+                </ListView.ContextMenu>
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Username" Width="150">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <DockPanel>
+                                        <Image Stretch="None" DockPanel.Dock="Left" VerticalAlignment="Center" Source="{Binding Icon}" />
+                                        <TextBlock Text="{Binding Username}" TextOptions.TextFormattingMode="Display" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource ForegroundTextColor}" TextTrimming="CharacterEllipsis" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="Password" Width="170">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Password}" TextOptions.TextFormattingMode="Display" TextTrimming="CharacterEllipsis" Foreground="{StaticResource ForegroundTextColor}" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="Details" Width="380">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding StatusDescription}" TextOptions.TextFormattingMode="Display" Foreground="{Binding ForegroundColor}" TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="TGT (base64)" Width="240">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding TgtBase64}" TextOptions.TextFormattingMode="Display" Foreground="{StaticResource ForegroundTextColor}" TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+        </DockPanel>
+    </Grid>
+</local:RubeusTab>

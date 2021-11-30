@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Text;
+using Rubeus.Domain;
 
 
 namespace Rubeus.Commands
@@ -14,37 +15,18 @@ namespace Rubeus.Commands
         {
             Console.WriteLine("\r\n[*] Action: Kerberoasting\r\n");
 
-            string spn = "";
-            List<string> spns = null;
-            string user = "";
-            string OU = "";
-            string outFile = "";
-            string domain = "";
-            string dc = "";
-            string ldapFilter = "";
-            string supportedEType = "rc4";
-            bool useTGTdeleg = false;
-            bool listUsers = false;
-            KRB_CRED TGT = null;
-            string pwdSetAfter = "";
-            string pwdSetBefore = "";
-            int resultLimit = 0;
-            int delay = 0;
-            int jitter = 0;
-            bool simpleOutput = false;
-            bool enterprise = false;
-            bool autoenterprise = false;
-            bool ldaps = false;
+            KerberoastSettings settings = new KerberoastSettings();
 
             if (arguments.ContainsKey("/spn"))
             {
                 // roast a specific single SPN
-                spn = arguments["/spn"];
+                settings.Spns = new List<string>();
+                settings.Spns.Add(arguments["/spn"]);
             }
 
             if (arguments.ContainsKey("/spns"))
             {
-                spns = new List<string>();
+                settings.Spns = new List<string>();
                 if (System.IO.File.Exists(arguments["/spns"]))
                 {
                     string fileContent = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes(arguments["/spns"]));
@@ -52,7 +34,7 @@ namespace Rubeus.Commands
                     {
                         if (!String.IsNullOrEmpty(s))
                         {
-                            spns.Add(s.Trim());
+                            settings.Spns.Add(s.Trim());
                         }
                     }
                 }
@@ -60,49 +42,49 @@ namespace Rubeus.Commands
                 {
                     foreach (string s in arguments["/spns"].Split(','))
                     {
-                        spns.Add(s);
+                        settings.Spns.Add(s);
                     }
                 }
             }
             if (arguments.ContainsKey("/user"))
             {
                 // roast a specific user (or users, comma-separated
-                user = arguments["/user"];
+                settings.Username = arguments["/user"];
             }
             if (arguments.ContainsKey("/ou"))
             {
                 // roast users from a specific OU
-                OU = arguments["/ou"];
+                settings.OuPath = arguments["/ou"];
             }
             if (arguments.ContainsKey("/domain"))
             {
                 // roast users from a specific domain
-                domain = arguments["/domain"];
+                settings.Domain.DomainName = arguments["/domain"];
             }
             if (arguments.ContainsKey("/dc"))
             {
                 // use a specific domain controller for kerberoasting
-                dc = arguments["/dc"];
+                settings.Domain.DomainController = arguments["/dc"];
             }
             if (arguments.ContainsKey("/outfile"))
             {
                 // output kerberoasted hashes to a file instead of to the console
-                outFile = arguments["/outfile"];
+                settings.OutputFilePath = arguments["/outfile"];
             }
             if (arguments.ContainsKey("/simple"))
             {
                 // output kerberoasted hashes to the output file format instead, to the console
-                simpleOutput = true;
+                settings.SimpleOutput = true;
             }
             if (arguments.ContainsKey("/aes"))
             {
                 // search for users w/ AES encryption enabled and request AES tickets
-                supportedEType = "aes";
+                settings.EncryptionMode = KerberoastSettings.ETypeMode.Aes;
             }
             if (arguments.ContainsKey("/rc4opsec"))
             {
                 // search for users without AES encryption enabled roast
-                supportedEType = "rc4opsec";
+                settings.EncryptionMode = KerberoastSettings.ETypeMode.Rc4Opsec;
             }
             if (arguments.ContainsKey("/ticket"))
             {
@@ -112,12 +94,12 @@ namespace Rubeus.Commands
                 if (Helpers.IsBase64String(kirbi64))
                 {
                     byte[] kirbiBytes = Convert.FromBase64String(kirbi64);
-                    TGT = new KRB_CRED(kirbiBytes);
+                    settings.Tgt = new KRB_CRED(kirbiBytes);
                 }
                 else if (System.IO.File.Exists(kirbi64))
                 {
                     byte[] kirbiBytes = System.IO.File.ReadAllBytes(kirbi64);
-                    TGT = new KRB_CRED(kirbiBytes);
+                    settings.Tgt = new KRB_CRED(kirbiBytes);
                 }
                 else
                 {
@@ -128,37 +110,37 @@ namespace Rubeus.Commands
             if (arguments.ContainsKey("/usetgtdeleg") || arguments.ContainsKey("/tgtdeleg"))
             {
                 // use the TGT delegation trick to get a delegated TGT to use for roasting
-                useTGTdeleg = true;
+                settings.UseTgtDelegationTrick = true;
             }
 
             if (arguments.ContainsKey("/pwdsetafter"))
             {
                 // filter for roastable users w/ a pwd set after a specific date
-                pwdSetAfter = arguments["/pwdsetafter"];
+                settings.PasswordSetAfter = arguments["/pwdsetafter"];
             }
 
             if (arguments.ContainsKey("/pwdsetbefore"))
             {
                 // filter for roastable users w/ a pwd set before a specific date
-                pwdSetBefore = arguments["/pwdsetbefore"];
+                settings.PasswordSetBefore = arguments["/pwdsetbefore"];
             }
 
             if (arguments.ContainsKey("/ldapfilter"))
             {
                 // additional LDAP targeting filter
-                ldapFilter = arguments["/ldapfilter"].Trim('"').Trim('\'');
+                settings.LdapFilter = arguments["/ldapfilter"].Trim('"').Trim('\'');
             }
 
             if (arguments.ContainsKey("/resultlimit"))
             {
                 // limit the number of roastable users
-                resultLimit = Convert.ToInt32(arguments["/resultlimit"]);
+                settings.ResultsLimit = Convert.ToInt32(arguments["/resultlimit"]);
             }
-            
+
             if (arguments.ContainsKey("/delay"))
             {
-                delay = Int32.Parse(arguments["/delay"]);
-                if(delay < 100)
+                settings.Delay = Convert.ToInt32(arguments["/delay"]);
+                if (settings.Delay < 100)
                 {
                     Console.WriteLine("[!] WARNING: delay is in milliseconds! Please enter a value > 100.");
                     return;
@@ -169,13 +151,14 @@ namespace Rubeus.Commands
             {
                 try
                 {
-                    jitter = Int32.Parse(arguments["/jitter"]);
+                    settings.Jitter = Convert.ToInt32(arguments["/jitter"]);
                 }
-                catch {
+                catch
+                {
                     Console.WriteLine("[X] Jitter must be an integer between 1-100.");
                     return;
                 }
-                if(jitter <= 0 || jitter > 100)
+                if (settings.Jitter <= 0 || settings.Jitter > 100)
                 {
                     Console.WriteLine("[X] Jitter must be between 1-100");
                     return;
@@ -185,28 +168,28 @@ namespace Rubeus.Commands
             if (arguments.ContainsKey("/stats"))
             {
                 // output stats on the number of kerberoastable users, don't actually roast anything
-                listUsers = true;
+                settings.NoTgsRequests = true;
             }
 
             if (arguments.ContainsKey("/enterprise"))
             {
                 // use enterprise principals in the request, requires /spn and (/ticket or /tgtdeleg)
-                enterprise = true;
+                settings.Enterprise = true;
             }
             if (arguments.ContainsKey("/autoenterprise"))
             {
                 // use enterprise principals in the request if roasting with the SPN fails, requires /ticket or /tgtdeleg, does nothing is /spn or /spns is supplied
-                autoenterprise = true;
+                settings.AutoEnterprise = true;
             }
             if (arguments.ContainsKey("/ldaps"))
             {
-                ldaps = true;
+                settings.Domain.Ldaps = true;
             }
 
-            if (String.IsNullOrEmpty(domain))
+            if (String.IsNullOrEmpty(settings.Domain.DomainName))
             {
                 // try to get the current domain
-                domain = System.DirectoryServices.ActiveDirectory.Domain.GetCurrentDomain().Name;
+                settings.Domain.DomainName = System.DirectoryServices.ActiveDirectory.Domain.GetCurrentDomain().Name;
             }
 
             if (arguments.ContainsKey("/creduser"))
@@ -230,15 +213,10 @@ namespace Rubeus.Commands
                 }
 
                 string password = arguments["/credpassword"];
-
-                System.Net.NetworkCredential cred = new System.Net.NetworkCredential(userName, password, domainName);
-
-                Roast.Kerberoast(spn, spns, user, OU, domain, dc, cred, outFile, simpleOutput, TGT, useTGTdeleg, supportedEType, pwdSetAfter, pwdSetBefore, ldapFilter, resultLimit, delay, jitter, listUsers, enterprise, autoenterprise, ldaps);
+                settings.Domain.Credentials = new System.Net.NetworkCredential(userName, password, domainName);
             }
-            else
-            {
-                Roast.Kerberoast(spn, spns, user, OU, domain, dc, null, outFile, simpleOutput, TGT, useTGTdeleg, supportedEType, pwdSetAfter, pwdSetBefore, ldapFilter, resultLimit, delay, jitter, listUsers, enterprise, autoenterprise, ldaps);
-            }
+            Roast.Kerberoast(settings);
+
         }
     }
 }

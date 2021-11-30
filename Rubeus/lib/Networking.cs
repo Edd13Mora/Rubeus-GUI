@@ -23,28 +23,35 @@ namespace Rubeus
             const int ERROR_SUCCESS = 0;
             IntPtr pDCI = IntPtr.Zero;
 
-            int val = Interop.DsGetDcName("", domainName, 0, "",
-                Interop.DSGETDCNAME_FLAGS.DS_DIRECTORY_SERVICE_REQUIRED |
-                Interop.DSGETDCNAME_FLAGS.DS_RETURN_DNS_NAME |
-                Interop.DSGETDCNAME_FLAGS.DS_IP_REQUIRED, out pDCI);
-
-            if (ERROR_SUCCESS == val) {
-                domainInfo = (Interop.DOMAIN_CONTROLLER_INFO)Marshal.PtrToStructure(pDCI, typeof(Interop.DOMAIN_CONTROLLER_INFO));
-                string dcName = domainInfo.DomainControllerName;
-                Interop.NetApiBufferFree(pDCI);
-                return dcName.Trim('\\');
-            }
-            else {
-                try {
-                    string pdc = System.DirectoryServices.ActiveDirectory.Domain.GetCurrentDomain().PdcRoleOwner.Name;
-                    return pdc;
+            int val = Interop.DsGetDcName("", domainName, 0, "", Interop.DSGETDCNAME_FLAGS.DS_DIRECTORY_SERVICE_REQUIRED |
+                                                                 Interop.DSGETDCNAME_FLAGS.DS_RETURN_DNS_NAME |
+                                                                 Interop.DSGETDCNAME_FLAGS.DS_IP_REQUIRED, out pDCI);
+            try
+            {
+                if (ERROR_SUCCESS == val)
+                {
+                    domainInfo = (Interop.DOMAIN_CONTROLLER_INFO)Marshal.PtrToStructure(pDCI, typeof(Interop.DOMAIN_CONTROLLER_INFO));
+                    string dcName = domainInfo.DomainControllerName;
+                    return dcName.Trim('\\');
                 }
-                catch {
+                else
+                {
                     string errorMessage = new Win32Exception((int)val).Message;
-                    Console.WriteLine("\r\n [X] Error {0} retrieving domain controller : {1}", val, errorMessage);
-                    Interop.NetApiBufferFree(pDCI);
-                    return "";
+                    Console.WriteLine("\r\n[X] Error {0} retrieving domain controller : {1}", val, errorMessage);
+                    if (string.IsNullOrEmpty(domainName))
+                    {
+                        Console.WriteLine("\n [*] Attempting to get PDC role owner to use as DC");
+                        return System.DirectoryServices.ActiveDirectory.Domain.GetCurrentDomain().PdcRoleOwner.Name;
+                    }
+                    else
+                    {
+                        throw new RubeusException(errorMessage);
+                    }
                 }
+            }
+            finally
+            {
+                Interop.NetApiBufferFree(pDCI);
             }
         }
 
@@ -68,7 +75,7 @@ namespace Rubeus
                 try
                 {
                     // If we call GetHostAddresses with an empty string, it will return IP addresses for localhost instead of DC
-                    if (String.IsNullOrEmpty(DCName)) 
+                    if (String.IsNullOrEmpty(DCName))
                     {
                         Console.WriteLine("[X] Error: No domain controller could be located");
                         return null;
@@ -121,28 +128,31 @@ namespace Rubeus
             var ipEndPoint = new System.Net.IPEndPoint(System.Net.IPAddress.Parse(server), port);
             try
             {
-                using (System.Net.Sockets.TcpClient client = new System.Net.Sockets.TcpClient(ipEndPoint.AddressFamily)) {
+                using (System.Net.Sockets.TcpClient client = new System.Net.Sockets.TcpClient(ipEndPoint.AddressFamily))
+                {
 
                     // connect to the server over The specified port
                     client.Client.Ttl = 128;
                     client.Connect(ipEndPoint);
                     BinaryReader socketReader = new BinaryReader(client.GetStream());
                     BinaryWriter socketWriter = new BinaryWriter(client.GetStream());
-                    
-                    socketWriter.Write(System.Net.IPAddress.HostToNetworkOrder(data.Length));                   
+
+                    socketWriter.Write(System.Net.IPAddress.HostToNetworkOrder(data.Length));
                     socketWriter.Write(data);
 
                     int recordMark = System.Net.IPAddress.NetworkToHostOrder(socketReader.ReadInt32());
                     int recordSize = recordMark & 0x7fffffff;
 
-                    if((recordMark & 0x80000000) > 0) {
+                    if ((recordMark & 0x80000000) > 0)
+                    {
                         Console.WriteLine("[X] Unexpected reserved bit set on response record mark from Domain Controller {0}:{1}, aborting", server, port);
                         return null;
                     }
-                    
+
                     byte[] responseRecord = socketReader.ReadBytes(recordSize);
 
-                    if(responseRecord.Length != recordSize) {
+                    if (responseRecord.Length != recordSize)
+                    {
                         Console.WriteLine("[X] Incomplete record received from Domain Controller {0}:{1}, aborting", server, port);
                         return null;
                     }
@@ -152,14 +162,19 @@ namespace Rubeus
             }
             catch (System.Net.Sockets.SocketException e)
             {
-                if (e.SocketErrorCode == System.Net.Sockets.SocketError.TimedOut) {
+                if (e.SocketErrorCode == System.Net.Sockets.SocketError.TimedOut)
+                {
                     Console.WriteLine("[X] Error connecting to {0}:{1} : {2}", server, port, e.Message);
-                } else {
+                }
+                else
+                {
                     Console.WriteLine("[X] Failed to get response from Domain Controller {0}:{1} : {2}", server, port, e.Message);
                 }
 
-            }catch(FormatException fe) {
-                Console.WriteLine("[X] Error parsing IP address {0} : {1}", server, fe.Message);                
+            }
+            catch (FormatException fe)
+            {
+                Console.WriteLine("[X] Error parsing IP address {0} : {1}", server, fe.Message);
             }
 
             return null;
@@ -199,7 +214,7 @@ namespace Rubeus
             if (String.IsNullOrEmpty(ldapPrefix) && String.IsNullOrEmpty(ldapOu))
             {
                 directoryObject = new DirectoryEntry();
-                
+
             }
             else //If we have a prefix (DC or domain), an OU path, or both
             {
@@ -222,14 +237,14 @@ namespace Rubeus
 
                 directoryObject = new DirectoryEntry(bindPath);
             }
-            
+
             if (cred != null)
             {
                 // if we're using alternate credentials for the connection
                 string userDomain = String.Format("{0}\\{1}", cred.Domain, cred.UserName);
                 directoryObject.Username = userDomain;
                 directoryObject.Password = cred.Password;
-             
+
                 // Removed credential validation check because it just caused problems and doesn't gain us anything (if invalid
                 // credentials are specified, the LDAP search will fail with "Logon failure: bad username or password" anyway)
 
@@ -258,17 +273,16 @@ namespace Rubeus
             return directoryObject;
         }
 
-        public static List<IDictionary<string, Object>> GetLdapQuery(System.Net.NetworkCredential cred, string OUName, string domainController, string domain, string filter, bool ldaps = false)
+        public static List<IDictionary<String, Object>> GetLdapQuery(System.Net.NetworkCredential cred, string OUName, string domainController, string domain, string filter, bool ldaps = false)
         {
-            var ActiveDirectoryObjects = new List<IDictionary<string, Object>>();
+            var ActiveDirectoryObjects = new List<IDictionary<String, Object>>();
             if (String.IsNullOrEmpty(domainController))
             {
                 domainController = Networking.GetDCName(domain); //if domain is null, this will try to find a DC in current user's domain
             }
             if (String.IsNullOrEmpty(domainController))
             {
-                Console.WriteLine("[X] Unable to retrieve the domain information, try again with '/domain'.");
-                return null;
+                throw new RubeusException("Unable to retrieve domain controller name from domain. Try specifying a DC manually");
             }
 
             if (ldaps)
@@ -291,13 +305,12 @@ namespace Rubeus
                 {
                     if (ex.InnerException != null)
                     {
-                        Console.WriteLine("[X] Error binding to LDAP server: {0}", ex.InnerException.Message);
+                        throw new RubeusException(String.Format("Error binding to LDAP server: {0}", ex.InnerException.Message));
                     }
                     else
                     {
-                        Console.WriteLine("[X] Error binding to LDAP server: {0}", ex.Message);
+                        throw new RubeusException(String.Format("Error binding to LDAP server: {0}", ex.Message));
                     }
-                    return null;
                 }
 
                 if (String.IsNullOrEmpty(OUName))
@@ -327,99 +340,100 @@ namespace Rubeus
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("[X] Error executing LDAP query: {0}", ex.Message);
+                    throw new RubeusException(String.Format("Error executing LDAP query: {0}", ex.Message));
                 }
 
                 if (response.ResultCode == ResultCode.Success)
                 {
                     ActiveDirectoryObjects = Helpers.GetADObjects(result);
                 }
+                else
+                {
+                    throw new RubeusException(String.Format("Error executing LDAP query: LDAP search request returned error code {0}", response.ResultCode.ToString()));
+                }
             }
-            else
+            else // If not using LDAPS
             {
                 DirectoryEntry directoryObject = null;
                 DirectorySearcher searcher = null;
                 try
                 {
-                    directoryObject = Networking.GetLdapSearchRoot(cred, OUName, domainController, domain);
-                    searcher = new DirectorySearcher(directoryObject);
-                    // enable LDAP paged search to get all results, by pages of 1000 items
-                    searcher.PageSize = 1000;
-                }
-                catch (Exception ex)
-                {
-                    if (ex.InnerException != null)
+                    try
                     {
-                        Console.WriteLine("[X] Error creating the domain searcher: {0}", ex.InnerException.Message);
+                        directoryObject = Networking.GetLdapSearchRoot(cred, OUName, domainController, domain);
+                        searcher = new DirectorySearcher(directoryObject);
+                        // enable LDAP paged search to get all results, by pages of 1000 items
+                        searcher.PageSize = 1000;
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        Console.WriteLine("[X] Error creating the domain searcher: {0}", ex.Message);
+                        if (ex.InnerException != null)
+                        {
+                            throw new RubeusException(String.Format("Error creating the domain searcher: {0}", ex.InnerException.Message));
+                        }
+                        else
+                        {
+                            throw new RubeusException(String.Format("Error creating the domain searcher: {0}", ex.Message));
+                        }
                     }
-                    return null;
-                }
 
-                // check to ensure that the bind worked correctly
-                try
-                {
-                    string dirPath = directoryObject.Path;
-                    if (String.IsNullOrEmpty(dirPath))
+                    // check to ensure that the bind worked correctly
+                    try
                     {
-                        Console.WriteLine("[*] Searching the current domain for '{0}'", filter);
+                        string dirPath = directoryObject.Path;
+                        if (String.IsNullOrEmpty(dirPath))
+                        {
+                            Console.WriteLine("[*] Searching the current domain for '{0}'", filter);
+                        }
+                        else
+                        {
+                            Console.WriteLine("[*] Searching path '{0}' for '{1}'", dirPath, filter);
+                        }
                     }
-                    else
+                    catch (DirectoryServicesCOMException ex)
                     {
-                        Console.WriteLine("[*] Searching path '{0}' for '{1}'", dirPath, filter);
+                        if (!String.IsNullOrEmpty(OUName))
+                        {
+                            throw new RubeusException(String.Format("\r\n[X] Error validating the domain searcher for bind path \"{0}\" : {1}", OUName, ex.Message));
+                        }
+                        else
+                        {
+                            throw new RubeusException(String.Format("\r\n[X] Error validating the domain searcher: {0}", ex.Message));
+                        }
                     }
-                }
-                catch (DirectoryServicesCOMException ex)
-                {
-                    if (!String.IsNullOrEmpty(OUName))
-                    {
-                        Console.WriteLine("\r\n[X] Error validating the domain searcher for bind path \"{0}\" : {1}", OUName, ex.Message);
-                    }
-                    else
-                    {
-                        Console.WriteLine("\r\n[X] Error validating the domain searcher: {0}", ex.Message);
-                    }
-                    return null;
-                }
 
-                try
-                {
                     searcher.Filter = filter;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("[X] Error settings the domain searcher filter: {0}", ex.InnerException.Message);
-                    return null;
-                }
+                    SearchResultCollection results = null;
 
-                SearchResultCollection results = null;
-
-                try
-                {
-                    results = searcher.FindAll();
-
+                    try
+                    {
+                        results = searcher.FindAll();
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex.InnerException != null)
+                        {
+                            throw new RubeusException(String.Format("Error executing the domain searcher: {0}", ex.InnerException.Message));
+                        }
+                        else
+                        {
+                            throw new RubeusException(String.Format("Error executing the domain searcher: {0}", ex.Message));
+                        }
+                    }
                     if (results.Count == 0)
                     {
                         Console.WriteLine("[X] No results returned by LDAP!");
-                        return null;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (ex.InnerException != null)
-                    {
-                        Console.WriteLine("[X] Error executing the domain searcher: {0}", ex.InnerException.Message);
                     }
                     else
                     {
-                        Console.WriteLine("[X] Error executing the domain searcher: {0}", ex.Message);
+                        ActiveDirectoryObjects = Helpers.GetADObjects(results);
                     }
-                    return null;
                 }
-                ActiveDirectoryObjects = Helpers.GetADObjects(results);
+                finally
+                {
+                    directoryObject?.Dispose();
+                    searcher?.Dispose();
+                }
             }
 
             return ActiveDirectoryObjects;

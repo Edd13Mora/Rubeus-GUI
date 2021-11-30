@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:RubeusGui.Windows.Tabs"
              mc:Ignorable="d" 
-             d:DesignHeight="650" d:DesignWidth="900" Loaded="RubeusTab_Loaded" >
+             d:DesignHeight="650" d:DesignWidth="950" Loaded="RubeusTab_Loaded" >
     <local:RubeusTab.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -15,8 +15,8 @@
     </local:RubeusTab.Resources>
     <Grid Background="{StaticResource TabBackgroundColor}">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="10,14,10,0">
-                <StackPanel>
+            <DockPanel Margin="10,14,10,0">
+                <StackPanel DockPanel.Dock="Top">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -31,148 +31,213 @@
                             <TextBlock> <Hyperlink x:Name="LnkHideDescription" Click="LnkHideDescription_Click">Show description</Hyperlink></TextBlock>
                         </StackPanel>
                     </Grid>
-                    <Grid Margin="0,16,3,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                    <DockPanel Margin="0,14,0,0">
+                        <StackPanel Orientation="Horizontal">
                             <Image Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/target_16px.png" />
-                            <TextBlock Text="Target: " VerticalAlignment="Center" Margin="3,0,6,0" />
+                            <TextBlock Text="Target:" Margin="4,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
-                        <WrapPanel Grid.Column="1">
-                            <StackPanel Margin="0,1,0,0">
-                                <RadioButton x:Name="RdoKerberoastAllUsers" IsChecked="True" VerticalAlignment="Center" VerticalContentAlignment="Center" GroupName="KerberoastUsers">
-                                    <TextBlock Text="All users with an SPN" />
+                        <Border HorizontalAlignment="Stretch" Margin="8,0,0,0" Height="1" VerticalAlignment="Center" Background="{StaticResource SeparatorBorderColor}" />
+                    </DockPanel>
+                    <WrapPanel Margin="24,10,0,0">
+                        <StackPanel Margin="0,1,0,0">
+                            <RadioButton x:Name="RdoKerberoastAllUsers" IsChecked="True" VerticalAlignment="Center" VerticalContentAlignment="Center" GroupName="KerberoastUsers">
+                                <TextBlock Text="All vulnerable users" />
+                            </RadioButton>
+                            <StackPanel Orientation="Horizontal"  Margin="0,8,0,0">
+                                <RadioButton x:Name="RdoKerberoastSpecificUser" VerticalAlignment="Center" VerticalContentAlignment="Center" GroupName="KerberoastUsers" Checked="RdoKerberoastSpecificUser_Checked" Unchecked="RdoKerberoastSpecificUser_Unchecked">
+                                    <TextBlock Text="Only this username:" />
                                 </RadioButton>
-                                <StackPanel Orientation="Horizontal"  Margin="0,8,0,0">
-                                    <RadioButton x:Name="RdoKerberoastSpecificUser" VerticalAlignment="Center" VerticalContentAlignment="Center" GroupName="KerberoastUsers" Checked="RdoKerberoastSpecificUser_Checked" Unchecked="RdoKerberoastSpecificUser_Unchecked">
-                                        <TextBlock Text="Only this username:" />
-                                    </RadioButton>
-                                    <TextBox x:Name="TxtKerberosSpecificUsername" Height="22" Width="120" IsEnabled="False" Margin="4,0,0,0" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal"  Margin="0,7,0,0">
-                                    <RadioButton x:Name="RdoKerberoastSpecificSpn" Checked="RdoKerberoastSpecificSpn_Checked" Unchecked="RdoKerberoastSpecificSpn_Unchecked" VerticalAlignment="Center" VerticalContentAlignment="Center" GroupName="KerberoastUsers">
-                                        <TextBlock Text="Only these SPNs:" />
-                                    </RadioButton>
-                                    <TextBox x:Name="TxtKerberosSpecificSpnName" ToolTip="Separate multiple SPNs with a comma" IsEnabled="False" Height="22" Width="190" Margin="4,0,0,0" />
-                                </StackPanel>
+                                <TextBox x:Name="TxtKerberosSpecificUsername" Height="22" Width="150" IsEnabled="False" Margin="4,0,0,0" />
                             </StackPanel>
-                        </WrapPanel>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,16,0,0" Grid.Row="1">
-                            <Image Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/adjust_16px.png" />
-                            <TextBlock Text="Options: " VerticalAlignment="Center" Margin="3,0,6,0" />
-                        </StackPanel>
-                        <StackPanel  Grid.Row="1" Grid.Column="1" Margin="0,16,0,0">
-                            <CheckBox x:Name="ChkStatsOnly" VerticalContentAlignment="Center">
-                                <TextBlock Margin="4,0" Text="Do not request tickets (just show search result stats)" />
-                            </CheckBox>
-                            <WrapPanel Margin="0,8,0,0">
-                                <CheckBox x:Name="ChkOutputFile" VerticalContentAlignment="Center" VerticalAlignment="Center" Margin="0,0,4,0">
-                                    <TextBlock Margin="4,0" Text="Output hashes to file:" />
-                                </CheckBox>
-                                <TextBox x:Name="TxtOutputFilePath" Width="250" Height="22" Margin="0,0,4,0" IsEnabled="{Binding ElementName=ChkOutputFile,Path=IsChecked}" />
-                                <Button x:Name="BtnOutputFileBrowse" Padding="10,0,10,0" IsEnabled="{Binding ElementName=ChkOutputFile,Path=IsChecked}" Click="BtnOutputFileBrowse_Click">
-                                    <TextBlock Text="Browse" />
-                                </Button>
-                            </WrapPanel>
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
-                <Expander Margin="-2,20,0,20" x:Name="ExpAdvanced">
-                    <Expander.Header>
-                        <TextBlock Text="Advanced Options" />
-                    </Expander.Header>
-                    <StackPanel Margin="20,12,0,0">
-                        <WrapPanel Margin="0,0,0,0">
-                            <TextBlock Text="LDAP filter:" VerticalAlignment="Center" />
-                            <TextBox x:Name="TxtLdapFilter" Width="300" Height="22" Margin="25,0,4,0" />
-                        </WrapPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0" x:Name="PanelTgt">
-                            <TextBlock Text="Use TGT from: " VerticalAlignment="Top" />
-                            <StackPanel Margin="6,1,0,0" VerticalAlignment="Top" HorizontalAlignment="Stretch">
-                                <RadioButton Height="22" IsChecked="True" GroupName="TGT" x:Name="RdoTgtDefault" ToolTip="Service tickets will be encrypted with the strongest encryption available for the service user account (RC4 unless an admin has explicitly enabled AES on that account)">
-                                    <TextBlock Text="Normal request" />
+                            <StackPanel Orientation="Horizontal"  Margin="0,7,0,0">
+                                <RadioButton x:Name="RdoKerberoastSpecificSpn" Checked="RdoKerberoastSpecificSpn_Checked" Unchecked="RdoKerberoastSpecificSpn_Unchecked" VerticalAlignment="Center" VerticalContentAlignment="Center" GroupName="KerberoastUsers">
+                                    <TextBlock Text="Only these SPNs:" />
                                 </RadioButton>
-                                <RadioButton Margin="0,4,0,0" x:Name="RdoTgtDeleg" VerticalContentAlignment="Center" GroupName="TGT" ToolTip="Uses a fake delegation request to get a TGT for the current user, so we can request all service tickets downgrade to RC4 encryption even if the account supports AES (on pre-2019 DCs)">
-                                    <TextBlock Text="TGT delegation trick" />
-                                </RadioButton>
-                                <WrapPanel Margin="0,10,0,0">
-                                    <RadioButton x:Name="RdoTgtFromFile" VerticalContentAlignment="Center" GroupName="TGT">
-                                        <TextBlock Text="File: " />
-                                    </RadioButton>
-                                    <TextBox x:Name="TxtTgtPath" Width="320" Height="22" Margin="4,0" IsEnabled="{Binding ElementName=RdoTgtFromFile,Path=IsChecked}" ToolTip="Path to KIRBI file" />
-                                    <Button x:Name="BtnTgtBrowse" Padding="10,0,10,0" IsEnabled="{Binding ElementName=RdoTgtFromFile,Path=IsChecked}" Click="BtnTgtBrowse_Click">
-                                        <TextBlock Text="Browse" />
-                                    </Button>
-                                </WrapPanel>
-                                <DockPanel Margin="0,8,0,0">
-                                    <RadioButton x:Name="RdoTgtBase64" VerticalContentAlignment="Center" GroupName="TGT" DockPanel.Dock="Left">
-                                        <TextBlock Text="Base64: " />
-                                    </RadioButton>
-                                    <TextBox x:Name="TxtTgtBase64" Height="22" Margin="4,0,0,0" IsEnabled="{Binding ElementName=RdoTgtBase64,Path=IsChecked}" ToolTip="Base64 representation of TGT" />
-                                </DockPanel>
-                                
+                                <TextBox x:Name="TxtKerberosSpecificSpnName" ToolTip="Separate multiple SPNs with a comma" IsEnabled="False" Height="22" Width="250" Margin="4,0,0,0" />
                             </StackPanel>
                         </StackPanel>
-                        <CheckBox x:Name="ChkAes" VerticalContentAlignment="Center" Margin="0,8,0,0" Height="22">
-                            <TextBlock Margin="4,0" Text="Only find users with AES encryption enabled" />
+                    </WrapPanel>
+                    <DockPanel Margin="0,14,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/security_cameras_16px.png" />
+                            <TextBlock Text="OpSec:" Margin="4,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <Border HorizontalAlignment="Stretch" Margin="8,0,0,0" Height="1" VerticalAlignment="Center" Background="{StaticResource SeparatorBorderColor}" />
+                    </DockPanel>
+                    <StackPanel Margin="25,12,0,0">
+                        <CheckBox x:Name="ChkStatsOnly" VerticalContentAlignment="Center">
+                            <TextBlock Margin="4,0" Text="Do not request tickets (just list vulnerable accounts)" />
                         </CheckBox>
                         <CheckBox x:Name="ChkRc4opsec" Margin="0,8,0,0" Height="22" VerticalContentAlignment="Center" Checked="ChkRc4opsec_Checked" Unchecked="ChkRc4opsec_Unchecked" ToolTip="Uses TGT delegation trick and excludes AES enabled accounts">
                             <TextBlock Text="RC4 Opsec mode" Margin="4,0,0,0" />
                         </CheckBox>
-                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <CheckBox x:Name="ChkDelay" VerticalContentAlignment="Center" Height="22">
-                                <TextBlock Margin="4,0" Text="Add delay between ticket requests: " />
-                            </CheckBox>
-                            <StackPanel Orientation="Horizontal" IsEnabled="{Binding ElementName=ChkDelay,Path=IsChecked}">
-                                <TextBox x:Name="TxtDelay" Width="45" Height="22" Margin="2,0,0,0" />
-                                <TextBlock Text="milliseconds" VerticalAlignment="Center" Margin="4,0,0,0" />
-                                <TextBlock Text="Jitter (%) :" VerticalAlignment="Center" Margin="18,0,0,0" />
-                                <TextBox x:Name="TxtJitter" Text="20" Width="33"  Height="22" Margin="6,0,0,0" />
-                            </StackPanel>
-                        </StackPanel>
-
-                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <CheckBox x:Name="ChkLimitResults" VerticalContentAlignment="Center" Height="22">
-                                <TextBlock Margin="4,0" Text="Maximum number of tickets to return:" />
-                            </CheckBox>
-                            <StackPanel Orientation="Horizontal" IsEnabled="{Binding ElementName=ChkLimitResults,Path=IsChecked}">
-                                <TextBox x:Name="TxtResultsLimit" Width="35" Height="22" Margin="2,0,0,0" />
-                            </StackPanel>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                            <TextBlock Text="Principal type: " />
-                            <StackPanel Margin="6,1,0,0">
-                                <RadioButton IsChecked="True" ToolTip="Uses the standard NT-SRV-INST or NT-SRV-HST principal type" Height="22">
-                                    <TextBlock Text="Standard" />
-                                </RadioButton>
-                                <RadioButton x:Name="RdoEnterprise" Margin="0,4,0,0" Height="22" ToolTip="Uses the NT-ENTERPRISE principal type, which supports more naming formats. Requires an SPN be specified as target and a manual TGT mode be selected" >
-                                    <TextBlock Text="Enterprise" />
-                                </RadioButton>
-                                <RadioButton x:Name="RdoAutoEnterprise" Margin="0,5,0,0" Height="22" ToolTip="Uses the standard principal type first and then tries NT-ENTERPRISE if that fails" >
-                                    <TextBlock Text="Use enterprise if standard fails" />
-                                </RadioButton>
-                            </StackPanel>
-                        </StackPanel>
-                        
-                        
-                        
-
-                        <!--<TextBlock Margin="0,8,0,0" TextWrapping="Wrap">
-                            More options coming soon. Check for updates here:
-                            <Hyperlink x:Name="LnkRubeusGuiGithub" Click="LnkRubeusGuiGithub_Click" Foreground="{StaticResource ForegroundLinkColor}">https://github.com/VbScrub/Rubeus-GUI</Hyperlink>
-                        </TextBlock>-->
                     </StackPanel>
 
 
-                </Expander>
+                    <Expander Margin="-2,20,0,20" x:Name="ExpAdvanced">
+                        <Expander.Header>
+                            <TextBlock Text="Advanced Options" />
+                        </Expander.Header>
+                        <StackPanel Margin="20,12,0,0">
+                            <WrapPanel Margin="0,0,0,0">
+                                <TextBlock Text="LDAP filter:" VerticalAlignment="Center" />
+                                <TextBox x:Name="TxtLdapFilter" Width="450" Height="22" Margin="25,0,4,0" />
+                            </WrapPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0" x:Name="PanelTgt">
+                                <TextBlock Text="Use TGT from: " VerticalAlignment="Top" />
+                                <StackPanel Margin="6,1,0,0" VerticalAlignment="Top" HorizontalAlignment="Stretch">
+                                    <RadioButton Height="22" IsChecked="True" GroupName="TGT" x:Name="RdoTgtDefault" ToolTip="Service tickets will be encrypted with the strongest encryption available for the service user account (RC4 unless an admin has explicitly enabled AES on that account)">
+                                        <TextBlock Text="Windows" />
+                                    </RadioButton>
+                                    <RadioButton Margin="0,4,0,0" x:Name="RdoTgtDeleg" VerticalContentAlignment="Center" GroupName="TGT" ToolTip="Uses a fake delegation request to get a TGT for the current user so we can request all service tickets downgrade to RC4 encryption even if the account supports AES (on pre-2019 DCs)">
+                                        <TextBlock Text="TGT delegation trick" />
+                                    </RadioButton>
+                                    <WrapPanel Margin="0,10,0,0">
+                                        <RadioButton x:Name="RdoTgtFromFile" VerticalContentAlignment="Center" GroupName="TGT">
+                                            <TextBlock Text="Kirbi file: " />
+                                        </RadioButton>
+                                        <TextBox x:Name="TxtTgtPath" Width="320" Height="22" Margin="4,0" IsEnabled="{Binding ElementName=RdoTgtFromFile,Path=IsChecked}" ToolTip="Path to KIRBI file" />
+                                        <Button x:Name="BtnTgtBrowse" Width="70" IsEnabled="{Binding ElementName=RdoTgtFromFile,Path=IsChecked}" Click="BtnTgtBrowse_Click">
+                                            <TextBlock Text="Browse" />
+                                        </Button>
+                                    </WrapPanel>
+                                    <DockPanel Margin="0,8,0,0">
+                                        <RadioButton x:Name="RdoTgtBase64" VerticalContentAlignment="Center" GroupName="TGT" DockPanel.Dock="Left">
+                                            <TextBlock Text="Base64: " />
+                                        </RadioButton>
+                                        <TextBox x:Name="TxtTgtBase64" Height="22" Margin="4,0,0,0" IsEnabled="{Binding ElementName=RdoTgtBase64,Path=IsChecked}" ToolTip="Base64 representation of TGT" />
+                                    </DockPanel>
+                                </StackPanel>
+                            </StackPanel>
+                            <CheckBox x:Name="ChkAes" VerticalContentAlignment="Center" Margin="0,8,0,0" Height="22">
+                                <TextBlock Margin="4,0" Text="Only find users with AES encryption enabled" />
+                            </CheckBox>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <CheckBox x:Name="ChkDelay" VerticalContentAlignment="Center" Height="22">
+                                    <TextBlock Margin="4,0" Text="Add delay between ticket requests: " />
+                                </CheckBox>
+                                <StackPanel Orientation="Horizontal" IsEnabled="{Binding ElementName=ChkDelay,Path=IsChecked}">
+                                    <TextBox x:Name="TxtDelay" Width="45" Height="22" Margin="2,0,0,0" />
+                                    <TextBlock Text="milliseconds" VerticalAlignment="Center" Margin="4,0,0,0" />
+                                    <TextBlock Text="Jitter (%) :" VerticalAlignment="Center" Margin="18,0,0,0" />
+                                    <TextBox x:Name="TxtJitter" Text="20" Width="33"  Height="22" Margin="6,0,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <CheckBox x:Name="ChkLimitResults" VerticalContentAlignment="Center" Height="22">
+                                    <TextBlock Margin="4,0" Text="Maximum number of tickets to return:" />
+                                </CheckBox>
+                                <StackPanel Orientation="Horizontal" IsEnabled="{Binding ElementName=ChkLimitResults,Path=IsChecked}">
+                                    <TextBox x:Name="TxtResultsLimit" Width="35" Height="22" Margin="2,0,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                <TextBlock Text="Principal type: " />
+                                <StackPanel Margin="6,1,0,0">
+                                    <RadioButton IsChecked="True" ToolTip="Uses the standard NT-SRV-INST or NT-SRV-HST principal type" Height="22">
+                                        <TextBlock Text="Standard" />
+                                    </RadioButton>
+                                    <RadioButton x:Name="RdoEnterprise" Margin="0,4,0,0" Height="22" ToolTip="Uses the NT-ENTERPRISE principal type, which supports more naming formats. Requires an SPN be specified as target and a manual TGT mode be selected" >
+                                        <TextBlock Text="Enterprise" />
+                                    </RadioButton>
+                                    <RadioButton x:Name="RdoAutoEnterprise" Margin="0,5,0,0" Height="22" ToolTip="Uses the standard principal type first and then tries NT-ENTERPRISE if that fails" >
+                                        <TextBlock Text="Use enterprise if standard fails" />
+                                    </RadioButton>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Expander>
 
-            </StackPanel>
+                    <WrapPanel Margin="0,10,0,0" HorizontalAlignment="Left" DockPanel.Dock="Bottom">
+                        <Button x:Name="BtnExecute" Width="130" Height="23" Click="BtnExecute_Click" ToolTip="Runs a Rubeus operation based on the currently selected tab" >
+                            <StackPanel Orientation="Horizontal" Margin="-2,0,0,0">
+                                <Image x:Name="ImgExecuteBtn" Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/play_16px.png" Margin="0,0,4,0" />
+                                <TextBlock x:Name="LblExecuteBtn" Text="Run" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <ProgressBar x:Name="ProgBar" Visibility="Collapsed" Margin="10,0" IsIndeterminate="True" Width="200" Height="19" Background="{StaticResource TabBackgroundColor}" BorderBrush="#FF3F3F40" />
+                    </WrapPanel>
+                    <TextBlock x:Name="LblResults" Text="Results:" Margin="0,20,0,0" IsEnabled="False"/>
+                </StackPanel>
+                <WrapPanel x:Name="PnlExport" IsEnabled="False" DockPanel.Dock="Bottom" HorizontalAlignment="Left" Margin="0,8,0,12">
+                    <Button x:Name="BtnExportHashes"  Height="23" Width="130" ToolTip="Save all hashes from results table to text file" Click="BtnExportHashes_Click">
+                        <TextBlock Text="Export Hashes" />
+                    </Button>
+                    <Button x:Name="BtnExportAll" Margin="10,0,0,0" Height="23" Width="130" ToolTip="Save entire results table to CSV file" Click="BtnExportAll_Click">
+                        <TextBlock Text="Export Results" />
+                    </Button>
+                </WrapPanel>
+                <ListView x:Name="LsvResults" Margin="0,5,0,0" MinHeight="100" SelectionMode="Single" IsEnabled="False">
+                    <ListView.ContextMenu>
+                        <ContextMenu x:Name="CtxResultsListView" Opened="CtxResultsListView_Opened" >
+                            <MenuItem x:Name="CtxItemCopyHash" Header="Copy Hash" Click="CtxItemCopyHash_Click" />
+                            <MenuItem x:Name="CtxItemCopyUsername" Header="Copy Username" Click="CtxItemCopyUsername_Click" />
+                            <MenuItem x:Name="CtxItemCopySpn" Header="Copy SPN" Click="CtxItemCopySpn_Click" />
+                            <MenuItem x:Name="CtxItemCopyDn" Header="Copy Distinguished Name" Click="CtxItemCopyDn_Click" />
+                            <Separator />
+                            <MenuItem x:Name="CtxItemExportHashes" Header="Export All Hashes" Click="CtxItemExportHashes_Click" />
+                            <MenuItem x:Name="CtxItemExportAll" Header="Export All Results" Click="CtxItemExportAll_Click" />
+                        </ContextMenu>
+                    </ListView.ContextMenu>
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Username" Width="150">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <DockPanel HorizontalAlignment="Center">
+                                            <Image Stretch="None" DockPanel.Dock="Left" VerticalAlignment="Center" Source="/RubeusGui;component/Images/male_user_16px.png" />
+                                            <TextBlock Text="{Binding Username}" TextOptions.TextFormattingMode="Display" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource ForegroundTextColor}" TextTrimming="CharacterEllipsis" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="Hash" Width="390">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock  Text="{Binding HashData.Hash}" TextOptions.TextFormattingMode="Display" Foreground="{StaticResource ForegroundTextColor}" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="Hash Encrypted With" Width="145">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock HorizontalAlignment="Center" Text="{Binding HashData.EncryptionString}" TextOptions.TextFormattingMode="Display" Foreground="{StaticResource ForegroundTextColor}" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="Supported Encryptions" Width="170">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding SupportedEncryptionString}" TextOptions.TextFormattingMode="Display" Foreground="{StaticResource ForegroundTextColor}" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="SPN" Width="200">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding ServicePrincipalName}" TextOptions.TextFormattingMode="Display" Foreground="{StaticResource ForegroundTextColor}" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="Distinguished Name" Width="290">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding DistinguishedName}" TextOptions.TextFormattingMode="Display" Foreground="{StaticResource ForegroundTextColor}" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="Password Last Set" Width="200">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding PasswordLastSet}" TextOptions.TextFormattingMode="Display" Foreground="{StaticResource ForegroundTextColor}" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </DockPanel>
+
         </ScrollViewer>
     </Grid>
 </local:RubeusTab>

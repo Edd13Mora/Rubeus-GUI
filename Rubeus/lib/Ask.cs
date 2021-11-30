@@ -9,7 +9,8 @@ using Rubeus.Kerberos;
 using Rubeus.Kerberos.PAC;
 
 
-namespace Rubeus {
+namespace Rubeus
+{
 
     public class RubeusException : Exception
     {
@@ -21,54 +22,49 @@ namespace Rubeus {
 
     public class KerberosErrorException : RubeusException
     {
-        public KRB_ERROR krbError;
+        public KRB_ERROR NativeKrbError { get; set; }
 
         public KerberosErrorException(string message, KRB_ERROR krbError)
             : base(message)
         {
-            this.krbError = krbError;
+            this.NativeKrbError = krbError;
         }
     }
 
     public class Ask
     {
-        public static byte[] TGT(string userName, string domain, string keyString, Interop.KERB_ETYPE etype, string outfile, bool ptt, string domainController = "", LUID luid = new LUID(), bool describe = false, bool opsec = false, string servicekey="", bool changepw = false)
+        public static KRB_CRED TGT(string userName, string domain, string keyString, Interop.KERB_ETYPE etype, string outfile, bool ptt, string domainController = "", LUID luid = new LUID(), bool describe = false, bool opsec = false, string servicekey = "", bool changepw = false)
         {
             // send request without Pre-Auth to emulate genuine traffic
-            bool preauth = false;
+            byte[] response = null;
             if (opsec)
             {
-                preauth = NoPreAuthTGT(userName, domain, keyString, etype, domainController, outfile, ptt, luid, describe, true);
-            }
-
-            try
-            {
-                // if AS-REQ without pre-auth worked don't bother sending AS-REQ with pre-auth
-                if (!preauth)
+                try
                 {
-                    Console.WriteLine("[*] Using {0} hash: {1}", etype, keyString);               
-                    Console.WriteLine("[*] Building AS-REQ (w/ preauth) for: '{0}\\{1}'", domain, userName);
-                    AS_REQ userHashASREQ = AS_REQ.NewASReq(userName, domain, keyString, etype, opsec, changepw);
-                    return InnerTGT(userHashASREQ, etype, outfile, ptt, domainController, luid, describe, true, opsec, servicekey);
+                    response = NoPreAuthTGT(userName, domain, keyString, etype, domainController, outfile, ptt, luid, describe, true);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("[*] Error trying to get TGT without preauth (to be expected unless user has no preauth enabled): " + ex.Message);
                 }
             }
-            catch (KerberosErrorException ex)
+
+            // if AS-REQ without pre-auth worked don't bother sending AS-REQ with pre-auth
+            if (response == null)
             {
-                KRB_ERROR error = ex.krbError;
-                Console.WriteLine("\r\n[X] KRB-ERROR ({0}) : {1}\r\n", error.error_code, (Interop.KERBEROS_ERROR)error.error_code);
-            }
-            catch (RubeusException ex)
-            {
-                Console.WriteLine("\r\n" + ex.Message + "\r\n");
+                Console.WriteLine("[*] Using {0} hash: {1}", etype, keyString);
+                Console.WriteLine("[*] Building AS-REQ (w/ preauth) for: '{0}\\{1}'", domain, userName);
+                AS_REQ userHashASREQ = AS_REQ.NewASReq(userName, domain, keyString, etype, opsec, changepw);
+                response = InnerTGT(userHashASREQ, etype, outfile, ptt, domainController, luid, describe, true, opsec, servicekey);
             }
 
-            return null;
+            return new KRB_CRED(response);
         }
 
-        public static bool NoPreAuthTGT(string userName, string domain, string keyString, Interop.KERB_ETYPE etype, string domainController, string outfile, bool ptt, LUID luid = new LUID(), bool describe = false, bool verbose = false)
+        public static byte[] NoPreAuthTGT(string userName, string domain, string keyString, Interop.KERB_ETYPE etype, string domainController, string outfile, bool ptt, LUID luid = new LUID(), bool describe = false, bool verbose = false)
         {
             string dcIP = Networking.GetDCIP(domainController, true, domain);
-            if (String.IsNullOrEmpty(dcIP)) { return false; }
+            if (String.IsNullOrEmpty(dcIP)) { throw new RubeusException("Could not get domain controller IP address for domain " + domain + "\n Please try specifying a DC IP manually"); }
 
             AS_REQ NoPreAuthASREQ = AS_REQ.NewASReq(userName, domain, etype, true);
             byte[] reqBytes = NoPreAuthASREQ.Encode().Encode();
@@ -77,7 +73,7 @@ namespace Rubeus {
 
             if (response == null)
             {
-                return false;
+                throw new RubeusException("No response from server " + dcIP);
             }
 
             // decode the supplied bytes to an AsnElt object
@@ -85,18 +81,15 @@ namespace Rubeus {
 
             // check the response value
             int responseTag = responseAsn.TagValue;
-
             if (responseTag == (int)Interop.KERB_MESSAGE_TYPE.AS_REP)
             {
                 Console.WriteLine("[-] AS-REQ w/o preauth successful! {0} has pre-authentication disabled!", userName);
-
-                byte[] kirbiBytes = HandleASREP(responseAsn, etype, keyString, outfile, ptt, luid, describe, verbose);
-
-                return true;
+                return HandleASREP(responseAsn, etype, keyString, outfile, ptt, luid, describe, verbose);
             }
-
-            return false;
-
+            else
+            {
+                throw new RubeusException("Unexpected response type from server (expected AS-REP (" + (int)Interop.KERB_MESSAGE_TYPE.AS_REP + ") but got " + responseTag);
+            }
         }
 
         //CCob (@_EthicalChaos_):
@@ -104,27 +97,36 @@ namespace Rubeus {
         // https://github.com/dotnet/Kerberos.NET/blob/v4.5.0/Kerberos.NET/Credentials/KerberosAsymmetricCredential.cs
         // Additional functionality - If the certificate points to a file we assume PKCS12 certificate store 
         // with private key otherwise use users certificate store along with any smartcard that maybe present.
-        public static X509Certificate2 FindCertificate(string certificate, string storePassword) {
+        public static X509Certificate2 FindCertificate(string certificate, string storePassword)
+        {
 
-            if (File.Exists(certificate)) {
+            if (File.Exists(certificate))
+            {
                 return new X509Certificate2(certificate, storePassword);
-            } else {
+            }
+            else
+            {
 
                 X509Store store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
                 store.Open(OpenFlags.ReadOnly);
                 X509Certificate2 result = null;
 
-                foreach (var cert in store.Certificates) {
-                    if (string.Equals(certificate, cert.Subject, StringComparison.InvariantCultureIgnoreCase)) {
+                foreach (var cert in store.Certificates)
+                {
+                    if (string.Equals(certificate, cert.Subject, StringComparison.InvariantCultureIgnoreCase))
+                    {
                         result = cert;
                         break;
-                    } else if (string.Equals(certificate, cert.Thumbprint, StringComparison.InvariantCultureIgnoreCase)) {
+                    }
+                    else if (string.Equals(certificate, cert.Thumbprint, StringComparison.InvariantCultureIgnoreCase))
+                    {
                         result = cert;
                         break;
                     }
                 }
 
-                if (result != null && !String.IsNullOrEmpty(storePassword)) {
+                if (result != null && !String.IsNullOrEmpty(storePassword))
+                {
                     result.SetPinForPrivateKey(storePassword);
                 }
 
@@ -132,8 +134,10 @@ namespace Rubeus {
             }
         }
 
-        public static byte[] TGT(string userName, string domain, string certFile, string certPass, Interop.KERB_ETYPE etype, string outfile, bool ptt, string domainController = "", LUID luid = new LUID(), bool describe = false, bool verifyCerts = false, string servicekey = "", bool getCredentials = false) {
-            try {
+        public static byte[] TGT(string userName, string domain, string certFile, string certPass, Interop.KERB_ETYPE etype, string outfile, bool ptt, string domainController = "", LUID luid = new LUID(), bool describe = false, bool verifyCerts = false, string servicekey = "", bool getCredentials = false)
+        {
+            try
+            {
                 X509Certificate2 cert = FindCertificate(certFile, certPass);
 
                 // Check for Base64 encoded certificate second in case certFile was a hex-encoded fingerprint
@@ -142,7 +146,8 @@ namespace Rubeus {
                     cert = new X509Certificate2(Convert.FromBase64String(certFile), certPass);
                 }
 
-                if (cert == null) {
+                if (cert == null)
+                {
                     Console.WriteLine("[!] Failed to find certificate for {0}", certFile);
                     return null;
                 }
@@ -155,21 +160,29 @@ namespace Rubeus {
                 AS_REQ pkinitASREQ = AS_REQ.NewASReq(userName, domain, cert, agreement, etype, verifyCerts);
                 return InnerTGT(pkinitASREQ, etype, outfile, ptt, domainController, luid, describe, true, false, servicekey, getCredentials);
 
-            } catch (KerberosErrorException ex) {
-                KRB_ERROR error = ex.krbError;
+            }
+            catch (KerberosErrorException ex)
+            {
+                KRB_ERROR error = ex.NativeKrbError;
                 Console.WriteLine("\r\n[X] KRB-ERROR ({0}) : {1}\r\n", error.error_code, (Interop.KERBEROS_ERROR)error.error_code);
-            } catch (RubeusException ex) {
+            }
+            catch (RubeusException ex)
+            {
                 Console.WriteLine("\r\n" + ex.Message + "\r\n");
             }
 
             return null;
         }
 
-        public static bool GetPKInitRequest(AS_REQ asReq, out PA_PK_AS_REQ pkAsReq) {
+        public static bool GetPKInitRequest(AS_REQ asReq, out PA_PK_AS_REQ pkAsReq)
+        {
 
-            if (asReq.padata != null) {
-                foreach (PA_DATA paData in asReq.padata) {
-                    if (paData.type == Interop.PADATA_TYPE.PK_AS_REQ) {
+            if (asReq.padata != null)
+            {
+                foreach (PA_DATA paData in asReq.padata)
+                {
+                    if (paData.type == Interop.PADATA_TYPE.PK_AS_REQ)
+                    {
                         pkAsReq = (PA_PK_AS_REQ)paData.value;
                         return true;
                     }
@@ -179,9 +192,11 @@ namespace Rubeus {
             return false;
         }
 
-        public static int GetKeySize(Interop.KERB_ETYPE etype) {           
-            switch (etype) {
-                 case Interop.KERB_ETYPE.des_cbc_md5:
+        public static int GetKeySize(Interop.KERB_ETYPE etype)
+        {
+            switch (etype)
+            {
+                case Interop.KERB_ETYPE.des_cbc_md5:
                     return 7;
                 case Interop.KERB_ETYPE.rc4_hmac:
                     return 16;
@@ -196,20 +211,21 @@ namespace Rubeus {
 
         public static byte[] InnerTGT(AS_REQ asReq, Interop.KERB_ETYPE etype, string outfile, bool ptt, string domainController = "", LUID luid = new LUID(), bool describe = false, bool verbose = false, bool opsec = false, string serviceKey = "", bool getCredentials = false)
         {
-            if ((ulong)luid != 0) {
+            if ((ulong)luid != 0)
+            {
                 Console.WriteLine("[*] Target LUID : {0}", (ulong)luid);
             }
 
-            string dcIP = Networking.GetDCIP(domainController, false);
+            string dcIP = Networking.GetDCIP(domainController, false, asReq.req_body.realm);
             if (String.IsNullOrEmpty(dcIP))
             {
-                throw new RubeusException("[X] Unable to get domain controller address");
+                throw new RubeusException("Unable to get domain controller address. Try specifying a DC IP manually");
             }
 
             byte[] response = Networking.SendBytes(dcIP, 88, asReq.Encode().Encode());
             if (response == null)
             {
-                throw new RubeusException("[X] No answer from domain controller");
+                throw new RubeusException("No answer from domain controller");
             }
 
             // decode the supplied bytes to an AsnElt object
@@ -218,9 +234,9 @@ namespace Rubeus {
             {
                 responseAsn = AsnElt.Decode(response);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-               throw new Exception($"Error parsing response AS-REQ: {e}.  Base64 response: {Convert.ToBase64String(response)}");
+                throw new RubeusException($"Error parsing response AS-REQ: {e}.  Base64 response: {Convert.ToBase64String(response)}");
             }
 
             // check the response value
@@ -240,12 +256,20 @@ namespace Rubeus {
             else if (responseTag == (int)Interop.KERB_MESSAGE_TYPE.ERROR)
             {
                 // parse the response to an KRB-ERROR
-                KRB_ERROR error = new KRB_ERROR(responseAsn.Sub[0]);
-                throw new KerberosErrorException("", error);
+                KRB_ERROR kerbError = new KRB_ERROR(responseAsn.Sub[0]);
+                Interop.KERBEROS_ERROR kerbErrorCode = (Interop.KERBEROS_ERROR)kerbError.error_code;
+                string extraDetails = string.Empty;
+                if (kerbErrorCode == Interop.KERBEROS_ERROR.KRB_AP_ERR_SKEW)
+                {
+                    extraDetails = $". The current time on the server is {kerbError.stime}";
+                }
+                string errorDescription = Helpers.GetFriendlyNameForKrbErrorCode(kerbErrorCode);
+                // Important to throw KerberosErrorException here because Bruteforcer class relies on only catching these exceptions specifically
+                throw new KerberosErrorException($"Server responded with error: {errorDescription + extraDetails}. Error code {(long)kerbErrorCode} ({kerbErrorCode})", kerbError);
             }
             else
             {
-                throw new RubeusException("[X] Unknown application tag: " + responseTag);
+                throw new RubeusException($"Unknown application tag: {responseTag}");
             }
         }
 
@@ -420,7 +444,7 @@ namespace Rubeus {
 
                     KRB_CRED kirbi = new KRB_CRED(kirbiBytes);
 
-                    LSA.DisplayTicket(kirbi, 2, false, false, false, false, 
+                    LSA.DisplayTicket(kirbi, 2, false, false, false, false,
                         string.IsNullOrEmpty(servicekey) ? null : Helpers.StringToByteArray(servicekey), string.IsNullOrEmpty(asrepkey) ? null : Helpers.StringToByteArray(asrepkey));
                 }
 
@@ -532,12 +556,15 @@ namespace Rubeus {
 
             // convert the key string to bytes
             byte[] key;
-            if (GetPKInitRequest(asReq, out PA_PK_AS_REQ pkAsReq)) {      
+            if (GetPKInitRequest(asReq, out PA_PK_AS_REQ pkAsReq))
+            {
                 // generate the decryption key using Diffie Hellman shared secret 
-                PA_PK_AS_REP pkAsRep = (PA_PK_AS_REP)rep.padata[0].value;                    
-                key = pkAsReq.Agreement.GenerateKey(pkAsRep.DHRepInfo.KDCDHKeyInfo.SubjectPublicKey.DepadLeft(), new byte[0], 
+                PA_PK_AS_REP pkAsRep = (PA_PK_AS_REP)rep.padata[0].value;
+                key = pkAsReq.Agreement.GenerateKey(pkAsRep.DHRepInfo.KDCDHKeyInfo.SubjectPublicKey.DepadLeft(), new byte[0],
                     pkAsRep.DHRepInfo.ServerDHNonce, GetKeySize(etype));
-            } else {
+            }
+            else
+            {
                 // convert the key string to bytes
                 key = Helpers.StringToByteArray(asReq.keyString);
             }

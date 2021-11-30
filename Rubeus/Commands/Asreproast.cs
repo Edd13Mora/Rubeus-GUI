@@ -17,7 +17,7 @@ namespace Rubeus.Commands
             string domain = "";
             string dc = "";
             string ou = "";
-            string format = "john";
+            Roast.HashFormat format = Roast.HashFormat.john;
             string ldapFilter = "";
             string outFile = "";
             bool ldaps = false;
@@ -52,9 +52,9 @@ namespace Rubeus.Commands
                 // additional LDAP targeting filter
                 ldapFilter = arguments["/ldapfilter"].Trim('"').Trim('\'');
             }
-            if (arguments.ContainsKey("/format"))
+            if (arguments.ContainsKey("/format") && arguments["/format"] == Roast.HashFormat.hashcat.ToString())
             {
-                format = arguments["/format"];
+                format = Roast.HashFormat.hashcat;
             }
             if (arguments.ContainsKey("/outfile"))
             {
@@ -97,7 +97,7 @@ namespace Rubeus.Commands
             else
             {
                 Roast.ASRepRoast(domain, user, ou, dc, format, null, outFile, ldapFilter, ldaps);
-            }                
+            }
         }
     }
 }

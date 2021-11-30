@@ -26,7 +26,7 @@ namespace RubeusGui
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             LblVersion.Text = UiHelpers.GetAppVersionString();
-            LblBuildDate.Text = "23rd November 2021"; // TODO: Update build date label before compiling
+            LblBuildDate.Text = "30th November 2021"; // TODO: Update build date label before compiling
         }
 
         private void WebsiteLnk_Click(object sender, RoutedEventArgs e)

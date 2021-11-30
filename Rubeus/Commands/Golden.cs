@@ -160,7 +160,7 @@ namespace Rubeus.Commands
                 foreach (string u in arguments["/uac"].Split(','))
                 {
                     Interop.PacUserAccountControl result;
-                    bool status = Interop.PacUserAccountControl.TryParse(u, out result);
+                    bool status = Enum.TryParse(u, out result);
 
                     if (status)
                     {

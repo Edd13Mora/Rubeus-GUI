@@ -22,7 +22,7 @@ namespace Rubeus.Commands
             string outfile = "";
             string certificate = "";
             string servicekey = "";
-            
+
             bool ptt = false;
             bool opsec = false;
             bool force = false;
@@ -58,16 +58,24 @@ namespace Rubeus.Commands
             }
 
             encType = Interop.KERB_ETYPE.rc4_hmac; //default is non /enctype is specified
-            if (arguments.ContainsKey("/enctype")) {
+            if (arguments.ContainsKey("/enctype"))
+            {
                 string encTypeString = arguments["/enctype"].ToUpper();
 
-                if (encTypeString.Equals("RC4") || encTypeString.Equals("NTLM")) {
+                if (encTypeString.Equals("RC4") || encTypeString.Equals("NTLM"))
+                {
                     encType = Interop.KERB_ETYPE.rc4_hmac;
-                } else if (encTypeString.Equals("AES128")) {
+                }
+                else if (encTypeString.Equals("AES128"))
+                {
                     encType = Interop.KERB_ETYPE.aes128_cts_hmac_sha1;
-                } else if (encTypeString.Equals("AES256") || encTypeString.Equals("AES")) {
+                }
+                else if (encTypeString.Equals("AES256") || encTypeString.Equals("AES"))
+                {
                     encType = Interop.KERB_ETYPE.aes256_cts_hmac_sha1;
-                } else if (encTypeString.Equals("DES")) {
+                }
+                else if (encTypeString.Equals("DES"))
+                {
                     encType = Interop.KERB_ETYPE.des_cbc_md5;
                 }
             }
@@ -75,16 +83,7 @@ namespace Rubeus.Commands
             if (arguments.ContainsKey("/password"))
             {
                 password = arguments["/password"];
-
-                string salt = String.Format("{0}{1}", domain.ToUpper(), user);
-
-                // special case for computer account salts
-                if (user.EndsWith("$"))
-                {
-                    salt = String.Format("{0}host{1}.{2}", domain.ToUpper(), user.TrimEnd('$').ToLower(), domain.ToLower());
-                }
-
-                hash = Crypto.KerberosPasswordHash(encType, password, salt);
+                hash = Helpers.EncryptPassword(domain, user, password, encType);
             }
 
             else if (arguments.ContainsKey("/des"))
@@ -112,11 +111,12 @@ namespace Rubeus.Commands
                 hash = arguments["/aes256"];
                 encType = Interop.KERB_ETYPE.aes256_cts_hmac_sha1;
             }
-            
-            if (arguments.ContainsKey("/certificate")) {
+
+            if (arguments.ContainsKey("/certificate"))
+            {
                 certificate = arguments["/certificate"];
 
-                if(arguments.ContainsKey("/verifychain") || arguments.ContainsKey("/verifycerts"))
+                if (arguments.ContainsKey("/verifychain") || arguments.ContainsKey("/verifycerts"))
                 {
                     Console.WriteLine("[*] Verifying the entire certificate chain!\r\n");
                     verifyCerts = true;
@@ -127,7 +127,8 @@ namespace Rubeus.Commands
                 }
             }
 
-            if (arguments.ContainsKey("/servicekey")) {
+            if (arguments.ContainsKey("/servicekey"))
+            {
                 servicekey = arguments["/servicekey"];
             }
 

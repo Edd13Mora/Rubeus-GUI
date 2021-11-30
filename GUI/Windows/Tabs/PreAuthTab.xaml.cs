@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Rubeus.Domain;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows;
@@ -25,32 +27,9 @@ namespace RubeusGui.Windows.Tabs
             InitializeComponent();
         }
 
-        public override bool ValidateSettings()
-        {
-            if ((bool)RdoSpecificUser.IsChecked && string.IsNullOrWhiteSpace(TxtUsername.Text))
-            {
-                MessageBox.Show("Please specify a username or select another target option", "No Username Specified", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-            if ((bool)RdoSpecificOu.IsChecked && string.IsNullOrEmpty(TxtOu.Text))
-            {
-                MessageBox.Show("Please specify a distinguished name for the OU you would like to query or select another target option", "No OU Specified", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-            if ((bool)ChkOutputFile.IsChecked && string.IsNullOrEmpty(TxtOutputFilePath.Text))
-            {
-                MessageBox.Show("Please specify the path you would like to export hashes to or uncheck the option to export hashes", "No File Path Specified", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-            return true;
-        }
-
         private void LnkHideDescription_Click(object sender, RoutedEventArgs e)
         {
-            LblDescription.Visibility = _descriptionHidden ? Visibility.Visible : Visibility.Collapsed;
-            _descriptionHidden = !_descriptionHidden;
-            LnkHideDescription.Inlines.Clear();
-            LnkHideDescription.Inlines.Add(_descriptionHidden ? "Show description" : "Hide description");
+            ToggleDescriptionVisibility(LblDescription,LnkHideDescription);
         }
 
         private void RdoSpecificOu_Checked(object sender, RoutedEventArgs e)
@@ -77,42 +56,196 @@ namespace RubeusGui.Windows.Tabs
             TxtUsername.IsEnabled = false;
         }
 
-        private void BtnOutputFileBrowse_Click(object sender, RoutedEventArgs e)
+        private void BtnExecute_Click(object sender, RoutedEventArgs e)
         {
-            TxtOutputFilePath.Text = UiHelpers.SaveTextFileDialog();
-        }
+            DomainSettings domainSettings = null;
+            string username = string.Empty;
+            string ou = string.Empty;
+            Rubeus.Roast.HashFormat hashFormat = Rubeus.Roast.HashFormat.hashcat;
 
-        protected override Dictionary<string, string> GetRubeusArgs()
-        {
-            // Arguments to pass to Rubeus    
-            Dictionary<string, string> rubeusArgs = new Dictionary<string, string>();
+            try
+            {
+                domainSettings = OwnerWindow.GetDomainSettings();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Invalid Domain Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             if ((bool)RdoSpecificUser.IsChecked)
             {
-                rubeusArgs.Add("/user", TxtUsername.Text);
+                if (string.IsNullOrEmpty(TxtUsername.Text))
+                {
+                    MessageBox.Show("Please specify a username or select another target option", "No Username Specified", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                username = TxtUsername.Text;
             }
             else if ((bool)RdoSpecificOu.IsChecked)
             {
-                rubeusArgs.Add("/ou", TxtOu.Text);
+                if (string.IsNullOrEmpty(TxtOu.Text))
+                {
+                    MessageBox.Show("Please specify an OU distinguished name or select another target option", "No OU Specified", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                username = TxtUsername.Text;
             }
-            if ((bool)RdoHashcat.IsChecked)
+            if ((bool)RdoJohn.IsChecked)
             {
-                rubeusArgs.Add("/format", "hashcat");
-            }
-            else if ((bool)RdoJohn.IsChecked)
-            {
-                rubeusArgs.Add("/format", "john");
-            }
-            if ((bool)ChkOutputFile.IsChecked)
-            {
-                rubeusArgs.Add("/outfile", TxtOutputFilePath.Text);
+                hashFormat = Rubeus.Roast.HashFormat.john;
             }
 
-            return rubeusArgs;
+            LblExecuteBtn.Text = "Running...";
+            ImgExecuteBtn.Source = new BitmapImage(UiHelpers.HourglassIconPath);
+            BtnExecute.IsEnabled = false;
+            ProgBar.Visibility = Visibility.Visible;
+            this.IsEnabled = false;
+
+            System.Threading.Thread bgThread = new System.Threading.Thread(() => RunAsRepRoast(domainSettings, username, ou, hashFormat));
+            bgThread.IsBackground = true;
+            bgThread.Start();
         }
 
-        protected override Rubeus.Commands.ICommand GetRubeusCommand()
+        // Run on background thread
+        private void RunAsRepRoast(DomainSettings domain, string username, string ou, Rubeus.Roast.HashFormat hashFormat)
         {
-            return new Rubeus.Commands.Asreproast();
+            List<AsRepRoastResult> results = new List<AsRepRoastResult>();
+            string errorMessage = string.Empty;
+            try
+            {
+                results = Rubeus.Roast.ASRepRoast(domain.DomainName, username, ou, domain.DomainController, hashFormat, domain.Credentials, ldaps: domain.Ldaps);
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+            // Switch back to UI thread and call ExecuteFinished method, passing it the results to be displayed
+            this.Dispatcher.Invoke(new Action<List<AsRepRoastResult>, string>(ExecuteFinished), results, errorMessage);
+        }
+
+        private void ExecuteFinished(List<AsRepRoastResult> results, string errorMessage)
+        {
+            // This check avoids null references if program was closed and thread has not terminated (shouldn't happen as we set Thread.IsBackground to true, but better safe than sorry)
+            if (this.OwnerWindow.IsLoaded)
+            {
+                this.IsEnabled = true;
+                PnlExport.IsEnabled = true; 
+                LblResults.IsEnabled = true;
+                LsvResults.IsEnabled = true;
+                LsvResults.ItemsSource = results;
+                LblResults.Text = "Results (" + results.Count + " users found):";
+                LblExecuteBtn.Text = "Run";
+                ImgExecuteBtn.Source = new BitmapImage(UiHelpers.PlayIconPath);
+                BtnExecute.IsEnabled = true;
+                ProgBar.Visibility = Visibility.Collapsed;
+                if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    MessageBox.Show(errorMessage, "Error Executing AS-REP Roast", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void CtxResultsListView_Opened(object sender, RoutedEventArgs e)
+        {
+            CtxItemCopyUsername.IsEnabled = LsvResults.SelectedItem != null;
+            CtxItemCopyHash.IsEnabled = LsvResults.SelectedItem != null;
+            CtxItemCopyDn.IsEnabled = LsvResults.SelectedItem != null;
+        }
+
+        private void CtxItemCopyHash_Click(object sender, RoutedEventArgs e)
+        {
+            UiHelpers.CopyToClipboard(((AsRepRoastResult)LsvResults.SelectedItem)?.HashData?.Hash);
+        }
+
+        private void CtxItemCopyUsername_Click(object sender, RoutedEventArgs e)
+        {
+            UiHelpers.CopyToClipboard(((AsRepRoastResult)LsvResults.SelectedItem)?.Username);
+        }
+
+        private void CtxItemCopyDn_Click(object sender, RoutedEventArgs e)
+        {
+            UiHelpers.CopyToClipboard(((AsRepRoastResult)LsvResults.SelectedItem)?.DistinguishedName);
+        }
+
+        private void CtxItemExportHashes_Click(object sender, RoutedEventArgs e)
+        {
+            ExportHashes();
+        }
+
+        private void CtxItemExportAll_Click(object sender, RoutedEventArgs e)
+        {
+            ExportResults();
+        }
+
+        private void BtnExportHashes_Click(object sender, RoutedEventArgs e)
+        {
+            ExportHashes();
+        }
+
+        private void BtnExportAll_Click(object sender, RoutedEventArgs e)
+        {
+            ExportResults();
+        }
+
+        private void ExportResults()
+        {
+            try
+            {
+                if (LsvResults.ItemsSource != null && LsvResults.Items.Count != 0)
+                {
+                    var sfd = new Microsoft.Win32.SaveFileDialog();
+                    sfd.Filter = "CSV Files (*.csv)|*.csv";
+                    sfd.FileName = "AsRepRoastResults.csv";
+                    if ((bool)sfd.ShowDialog())
+                    {
+                        using (StreamWriter writer = new StreamWriter(sfd.FileName, false, new UTF8Encoding(false)))
+                        {
+                            writer.WriteLine("\"Username\",\"Hash\",\"Distinguished Name\"");
+                            foreach (AsRepRoastResult result in LsvResults.ItemsSource)
+                            {
+                                string username = UiHelpers.MakeCsvSafe(result.Username);
+                                string hash = result.HashData?.Hash; hash = UiHelpers.MakeCsvSafe(hash);
+                                string dn = UiHelpers.MakeCsvSafe(result.DistinguishedName);
+                                writer.WriteLine($"{username},{hash},{dn}");
+                            }
+                        }
+                        MessageBox.Show("Hashes exported to file successfully", "File Saved Successfully", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error saving results to file: " + ex.Message, "Error Exporting Results", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ExportHashes()
+        {
+            try
+            {
+                if (LsvResults.ItemsSource != null)
+                {
+                    var sfd = new Microsoft.Win32.SaveFileDialog();
+                    sfd.Filter = "Text Files (*.txt)|*.txt|All Files (*.*)|*.*";
+                    sfd.FileName = "hashes.txt";
+                    if ((bool)sfd.ShowDialog())
+                    {
+                        using (StreamWriter writer = new StreamWriter(sfd.FileName, false, new UTF8Encoding(false)))
+                        {
+                            foreach (AsRepRoastResult result in LsvResults.ItemsSource)
+                            {
+                                writer.WriteLine(result.HashData?.Hash);
+                            }
+                        }
+                        MessageBox.Show("Hashes exported to file successfully", "File Saved Successfully", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error saving results to file: " + ex.Message, "Error Exporting Results", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }

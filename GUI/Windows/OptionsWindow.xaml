@@ -31,9 +31,6 @@
             <CheckBox x:Name="ChkShowAdvanced" Margin="0,12,0,0">
                 <TextBlock Text="Expand advanced options by default" Margin="4,0" ToolTip="Expands the Advanced Options section automatically when you select a tab that contains advanced options" />
             </CheckBox>
-            <CheckBox x:Name="ChkExpandOutput" Margin="0,12,0,0">
-                <TextBlock Text="Show output window on run" Margin="4,0" ToolTip="Automatically shows the output window when you click Run if it is not already visible" />
-            </CheckBox>
             <TextBlock Margin="0,14,0,10">If you have suggestions for additional options <Hyperlink x:Name="LnkFeedback" Click="LnkFeedback_Click">let me know</Hyperlink></TextBlock>
         </StackPanel>
 

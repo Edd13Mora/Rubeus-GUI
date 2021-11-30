@@ -2,18 +2,50 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows;
 
 namespace RubeusGui
 {
     class UiHelpers
     {
 
-        // Checks to see if the supplied username is in the format "domain.local\username" as this is the format Rubeus requires
-        public static bool UsernameContainsDomain(string username)
+        public static Uri HourglassIconPath => new Uri("pack://application:,,,/RubeusGui;component/images/hourglass_16px.png");
+        public static Uri PlayIconPath => new Uri("pack://application:,,,/RubeusGui;component/images/play_16px.png");
+
+        public static string MakeCsvSafe(string value)
         {
-            // I'm not good with RegEx and the one Rubeus uses to check username format doesn't actually work correctly, so I created this mess instead
-            return (!string.IsNullOrEmpty(username)) && (username.IndexOf(@"\") > 0) && username.IndexOf(".") > 0 && username.IndexOf(".") < username.IndexOf(@"\");
+            if (string.IsNullOrEmpty(value))
+            {
+                return "\" \"";
+            }
+            else
+            {
+                return "\"" + value.Replace("\"", "\"\"") + "\"";
+            }
         }
+
+        public static void CopyToClipboard(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return;
+            }
+
+            try
+            {
+                Clipboard.SetText(text);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error setting clipboard text: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+                       
+        //public static bool UsernameContainsDomain(string username)
+        //{
+        //    // I'm not good with RegEx and the one Rubeus uses to validate the username format doesn't actually work correctly, so I created this mess instead
+        //    return (!string.IsNullOrEmpty(username)) && (username.IndexOf(@"\") > 0) && username.IndexOf(".") > 0 && username.IndexOf(".") < username.IndexOf(@"\");
+        //}
 
         public static void LaunchGithubMainUrl()
         {

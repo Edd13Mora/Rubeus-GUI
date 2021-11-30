@@ -55,11 +55,13 @@ namespace Rubeus.Commands
                     if (!String.IsNullOrEmpty(this.outfile))
                     {
                         Console.WriteLine("\r\n[+] Done: Credentials should be saved in \"{0}\"\r\n", this.outfile);
-                    }else
+                    }
+                    else
                     {
                         Console.WriteLine("\r\n[+] Done\r\n", this.outfile);
                     }
-                } else
+                }
+                else
                 {
                     Console.WriteLine("\r\n[-] Done: No credentials were discovered :'(\r\n");
                 }
@@ -112,7 +114,8 @@ namespace Rubeus.Commands
             if (arguments.ContainsKey("/dc"))
             {
                 this.dc = arguments["/dc"];
-            }else
+            }
+            else
             {
                 this.dc = this.domain;
             }
@@ -148,7 +151,8 @@ namespace Rubeus.Commands
                 try
                 {
                     this.passwords = File.ReadAllLines(arguments["/passwords"]);
-                }catch(FileNotFoundException)
+                }
+                catch (FileNotFoundException)
                 {
                     throw new BruteArgumentException("[X] Unable to open passwords file \"" + arguments["/passwords"] + "\": Not found file");
                 }
@@ -168,9 +172,11 @@ namespace Rubeus.Commands
         {
             if (arguments.ContainsKey("/users"))
             {
-                try {
+                try
+                {
                     this.usernames = File.ReadAllLines(arguments["/users"]);
-                }catch (FileNotFoundException)
+                }
+                catch (FileNotFoundException)
                 {
                     throw new BruteArgumentException("[X] Unable to open users file \"" + arguments["/users"] + "\": Not found file");
                 }
@@ -207,13 +213,13 @@ namespace Rubeus.Commands
 
         private void ObtainUsers()
         {
-            if(this.usernames == null)
+            if (this.usernames == null)
             {
                 this.usernames = this.DomainUsernames();
             }
             else
             {
-                if(this.verbose == 0)
+                if (this.verbose == 0)
                 {
                     this.verbose = 1;
                 }
@@ -235,7 +241,7 @@ namespace Rubeus.Commands
                 {
                     throw new BruteArgumentException("[X] Credentials supplied for '" + userDomain + "' are invalid!");
                 }
-                
+
                 directoryObject.Username = userDomain;
                 directoryObject.Password = this.credPassword;
 
@@ -260,7 +266,8 @@ namespace Rubeus.Commands
                 }
 
                 return usernames.Cast<object>().Select(x => x.ToString()).ToArray();
-            } catch(System.Runtime.InteropServices.COMException ex)
+            }
+            catch (System.Runtime.InteropServices.COMException ex)
             {
                 switch ((uint)ex.ErrorCode)
                 {
@@ -287,7 +294,7 @@ namespace Rubeus.Commands
             {
                 domainController = Networking.GetDCName();
 
-                if(domainController == "")
+                if (domainController == "")
                 {
                     throw new BruteArgumentException("[X] Unable to find DC address! Try it by providing /domain or /dc");
                 }
@@ -328,7 +335,7 @@ namespace Rubeus.Commands
 
     }
 
-    
+
     public class BruteforceConsoleReporter : IBruteforcerReporter
     {
 
@@ -381,7 +388,7 @@ namespace Rubeus.Commands
 
         public void ReportKrbError(string domain, string username, KRB_ERROR krbError)
         {
-            Console.WriteLine("\r\n[X] {0} KRB-ERROR ({1}) : {2}\r\n", username, 
+            Console.WriteLine("\r\n[X] {0} KRB-ERROR ({1}) : {2}\r\n", username,
                     krbError.error_code, (Interop.KERBEROS_ERROR)krbError.error_code);
         }
 
@@ -397,7 +404,8 @@ namespace Rubeus.Commands
             try
             {
                 File.AppendAllText(this.passwordsOutfile, line);
-            }catch(UnauthorizedAccessException)
+            }
+            catch (UnauthorizedAccessException)
             {
                 if (!this.reportedBadOutputFile)
                 {
@@ -409,7 +417,7 @@ namespace Rubeus.Commands
 
         private void HandleTicket(string username, byte[] ticket)
         {
-            if(this.saveTicket)
+            if (this.saveTicket)
             {
                 string ticketFilename = username + ".kirbi";
                 File.WriteAllBytes(ticketFilename, ticket);

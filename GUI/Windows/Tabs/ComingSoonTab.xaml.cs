@@ -33,21 +33,7 @@ namespace RubeusGui.Windows.Tabs
             LblVersion.Text = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
         }
 
-        public override bool ValidateSettings()
-        {
-            //TODO: When adding new tabs, validate tab specific settings here (empty text boxes etc)
-            return false;
-        }
-        
-       
-        protected override Dictionary<string, string> GetRubeusArgs()
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override Rubeus.Commands.ICommand GetRubeusCommand()
-        {
-            throw new NotImplementedException();
-        }
+              
+      
     }
 }

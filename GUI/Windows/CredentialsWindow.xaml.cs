@@ -49,14 +49,14 @@ namespace RubeusGui
 
         private void BtnOk_Click(object sender, RoutedEventArgs e)
         {
-            if (!UiHelpers.UsernameContainsDomain(TxtUsername.Text))
+            if (string.IsNullOrEmpty(TxtUsername.Text))
             {
-                MessageBox.Show(@"Username must be in the format ""domain.local\username""", "Invalid Username", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Please enter a username, or click Cancel to use your Windows logon credentials instead", "No Username Specified", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
             if (String.IsNullOrEmpty(TxtPassword.Password))
             {
-                MessageBox.Show("Please enter a password, or click Cancel to use your logon credentials instead", "No Password Specified", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Please enter a password, or click Cancel to use your Windows logon credentials instead", "No Password Specified", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
             this.Username = TxtUsername.Text;

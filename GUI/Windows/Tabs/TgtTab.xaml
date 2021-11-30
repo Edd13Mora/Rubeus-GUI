@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:RubeusGui.Windows.Tabs"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="550" d:DesignWidth="900">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -15,8 +15,8 @@
     </UserControl.Resources>
     <Grid Background="{StaticResource TabBackgroundColor}">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="10,14,10,0">
-                <StackPanel>
+            <DockPanel Margin="10,14,10,0">
+                <StackPanel DockPanel.Dock="Top">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -27,16 +27,21 @@
                             <TextBlock x:Name="LblDescription" TextWrapping="Wrap" Margin="0,0,0,3" Visibility="Collapsed">
                                         If you only have a user's password hash and not their plaintext password, you can request a TGT for them and then use that TGT to request service tickets 
                                         ("pass the hash" style attack). 
-                                        If you have the plaintext password then requesting a TGT can still be useful as the TGT can be saved to file and then passed to other parts of Rubeus (kerberoasting etc). This 
-                                        allows them to request that accounts with AES enabled are downgraded to the weaker RC4 encryption. <LineBreak />
-                                        Note: Downgrading AES to RC4 only works when querying pre-2019 domain controllers
-
+                                        If you do have the plaintext password then requesting a TGT can still be useful as it can be supplied to other attacks such as Kerberoasting etc. This 
+                                        allows those attacks to request RC4 encryption instead of AES encryption for any AES enabled accounts (this downgrade only works when querying pre-2019 domain controllers)
                             </TextBlock>
                             <TextBlock> <Hyperlink x:Name="LnkHideDescription" Click="LnkHideDescription_Click">Show description</Hyperlink></TextBlock>
                         </StackPanel>
                     </Grid>
 
-                    <Grid Margin="0,14,0,0">
+                    <DockPanel Margin="0,14,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Stretch="None" VerticalAlignment="Center" Source="/Images/identification_documents_16px.png" />
+                            <TextBlock Text="Request TGT for:" Margin="4,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <Border HorizontalAlignment="Stretch" Margin="8,0,0,0" Height="1" VerticalAlignment="Center" Background="{StaticResource SeparatorBorderColor}" />
+                    </DockPanel>
+                    <Grid Margin="26,6,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
@@ -45,83 +50,56 @@
                             <RowDefinition Height="31" />
                             <RowDefinition Height="31" />
                             <RowDefinition Height="31" />
-                            <RowDefinition Height="0" x:Name="RowEncryption" />
+                            <RowDefinition Height="0" x:Name="RowRequiredEncryption" />
                         </Grid.RowDefinitions>
-                        <WrapPanel VerticalAlignment="Center" HorizontalAlignment="Left">
-                            <!--<Image Stretch="None" Source="/RubeusGui;component/Images/person_16px.png" />-->
-                            <TextBlock Text="Username:" VerticalAlignment="Center" />
-                        </WrapPanel>
-                        <TextBox x:Name="TxtUsername" Margin="7,0" Grid.Column="1" Width="180" Height="22" HorizontalAlignment="Left" />
+                        <TextBlock Text="Username:" VerticalAlignment="Center" />
+                        <TextBox x:Name="TxtUsername" Margin="7,0" Grid.Column="1" Width="180" Height="22" HorizontalAlignment="Left" ToolTip="The user to request a TGT for (not including domain name)" />
                         <TextBlock Text="Password is:" VerticalAlignment="Center" Grid.Row="1" HorizontalAlignment="Left"/>
-                        <WrapPanel Grid.Column="1" Grid.Row="1" VerticalAlignment="Center"  Margin="6,0,0,0">
-                           <RadioButton x:Name="RdoPwdPlaintext" GroupName="PwdType" VerticalAlignment="Center" Checked="RdoPwdPlaintext_Checked" Unchecked="RdoPwdPlaintext_Unchecked">
-                                <TextBlock Text="Plaintext" />
-                            </RadioButton>
-                            <RadioButton x:Name="RdoPwdRc4" IsChecked="True" Margin="12,0,0,0" GroupName="PwdType" VerticalAlignment="Center">
-                                <TextBlock Text="RC4 (NTLM)" />
-                            </RadioButton>
-                            <RadioButton x:Name="RdoPwdDes" Margin="12,0,0,0" GroupName="PwdType" VerticalAlignment="Center">
-                                <TextBlock Text="DES" />
-                            </RadioButton>
-                            <RadioButton x:Name="RdoPwdAes128" Margin="12,0,0,0" GroupName="PwdType" VerticalAlignment="Center">
-                                <TextBlock Text="AES 128" />
-                            </RadioButton>
-                            <RadioButton x:Name="RdoPwdAes256" Margin="12,0,0,0" GroupName="PwdType" VerticalAlignment="Center">
-                                <TextBlock Text="AES 256" />
-                            </RadioButton>
-                        </WrapPanel>
-                        <WrapPanel VerticalAlignment="Center" Grid.Row="2" HorizontalAlignment="Left">
-                            <!--<Image Stretch="None" Source="/RubeusGui;component/Images/lock_16px.png" />-->
-                            <TextBlock x:Name="LblPasswordOrHash" Text="Password:" VerticalAlignment="Center" />
-                        </WrapPanel>
+                        <ComboBox x:Name="CboInputEncryption" Width="110" Margin="6,0,0,0" DisplayMemberPath="DisplayName"  SelectionChanged="CboInputEncryption_SelectionChanged" ToolTip="The type of data you want to enter into the Password field" HorizontalAlignment="Left" Grid.Column="1" Grid.Row="1" VerticalAlignment="Center" />
+                        <TextBlock x:Name="LblPasswordOrHash" Text="Password:" VerticalAlignment="Center" Grid.Row="2" />
                         <TextBox x:Name="TxtPassword" Grid.Row="2" Grid.Column="1" Height="22" HorizontalAlignment="Left" Margin="6,0,0,0" Width="360" Visibility="Visible" ToolTip="The user's plaintext password" />
-                        <!--<TextBox x:Name="TxtHash" Grid.Row="2" Grid.Column="1" Height="22" HorizontalAlignment="Left" Margin="6,0,0,0" Width="390" Visibility="Collapsed" ToolTip="The user's encrypted password hash" />-->
                         <TextBlock Grid.Row="3" Text="Encrypt with:" VerticalAlignment="Center" HorizontalAlignment="Left" />
-                        <WrapPanel x:Name="PnlEncryption" Grid.Row="3" Grid.Column="1" VerticalAlignment="Center">
-                            <RadioButton x:Name="RdoEncyptWithRc4" Margin="6,0,0,0" IsChecked="True" GroupName="TgtEncType" VerticalAlignment="Center">
-                                <TextBlock Text="RC4" />
-                            </RadioButton>
-                            <RadioButton x:Name="RdoEncyptWithDes" Margin="12,0,0,0" GroupName="TgtEncType" VerticalAlignment="Center">
-                                <TextBlock Text="DES" />
-                            </RadioButton>
-                            <RadioButton x:Name="RdoEncyptWithAes128" Margin="12,0,0,0" GroupName="TgtEncType" VerticalAlignment="Center">
-                                <TextBlock Text="AES 128" />
-                            </RadioButton>
-                            <RadioButton x:Name="RdoEncyptWithAes256" Margin="12,0,0,0" GroupName="TgtEncType" VerticalAlignment="Center">
-                                <TextBlock Text="AES 256" />
-                            </RadioButton>
-                        </WrapPanel>
+                        <ComboBox x:Name="CboRequiresEncryption" Width="110" DisplayMemberPath="DisplayName" HorizontalAlignment="Left" Grid.Column="1" Grid.Row="3" VerticalAlignment="Center" Margin="6,0,0,0" />
                     </Grid>
-                   
-
-
-                    <CheckBox x:Name="ChkPtt" Margin="0,10,0,0">
-                        <TextBlock Text="Import TGT into current logon session (overwrites existing session TGT)" Margin="4,0" ToolTip="Windows will automatically use this TGT when requesting new service tickets" />
+                    <DockPanel Margin="0,14,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Stretch="None" VerticalAlignment="Center" Source="/Images/adjust_16px.png" />
+                            <TextBlock Text="Options:" Margin="4,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <Border HorizontalAlignment="Stretch" Margin="8,0,0,0" Height="1" VerticalAlignment="Center" Background="{StaticResource SeparatorBorderColor}" />
+                    </DockPanel>
+                    <CheckBox x:Name="ChkPtt" Margin="26,14,0,0">
+                        <TextBlock Text="Import TGT into current logon session (overwrites existing session TGT)" Margin="4,0" ToolTip="Windows will automatically use this TGT when requesting new service tickets. Also known as PTT (Pass The Ticket)" />
                     </CheckBox>
-                    <CheckBox x:Name="ChkOpsec" Margin="0,11,0,0">
-                        <TextBlock Text="OpSec mode" Margin="4,0" ToolTip="More realistic looking network traffic and uses the highest level of encryption" />
+                    <CheckBox x:Name="ChkOpsec" Margin="26,11,0,0">
+                        <TextBlock Text="OpSec mode" Margin="4,0" ToolTip="Creates more realistic network traffic and uses the highest level of encryption like legitimate requests do" />
                     </CheckBox>
-                    <WrapPanel Margin="0,10,0,0">
-                        <CheckBox x:Name="ChkOutputFile" VerticalContentAlignment="Center" VerticalAlignment="Center" Margin="0,0,4,0">
-                            <TextBlock Margin="4,0" Text="Output TGT to file:" />
-                        </CheckBox>
-                        <TextBox x:Name="TxtOutputFilePath" Width="250" Height="22" Margin="0,0,4,0" VerticalAlignment="Top" IsEnabled="{Binding ElementName=ChkOutputFile,Path=IsChecked}" />
-                        <Button x:Name="BtnOutputFileBrowse" Padding="10,0,10,0" Height="22" VerticalAlignment="Top" IsEnabled="{Binding ElementName=ChkOutputFile,Path=IsChecked}" Click="BtnOutputFileBrowse_Click">
-                            <TextBlock Text="Browse" />
+                    <WrapPanel Margin="0,28,0,0" HorizontalAlignment="Left" DockPanel.Dock="Bottom">
+                        <Button x:Name="BtnExecute" Width="130" Height="23" Click="BtnExecute_Click" ToolTip="Runs a Rubeus operation based on the currently selected tab" >
+                            <StackPanel Orientation="Horizontal" Margin="-2,0,0,0">
+                                <Image x:Name="ImgExecuteBtn" Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/play_16px.png" Margin="0,0,4,0" />
+                                <TextBlock x:Name="LblExecuteBtn" Text="Run" VerticalAlignment="Center" />
+                            </StackPanel>
                         </Button>
+                        <ProgressBar x:Name="ProgBar" Visibility="Collapsed" Margin="10,0" IsIndeterminate="True" Width="200" Height="19" Background="{StaticResource TabBackgroundColor}" BorderBrush="#FF3F3F40" />
                     </WrapPanel>
-
-                </StackPanel>
-                <!--<Expander Margin="-2,20,0,20">
-                    <Expander.Header>
-                        <TextBlock Text="Advanced Options" />
-                    </Expander.Header>
-                    <StackPanel Margin="20,12,0,0">
-                        
+                    <StackPanel x:Name="PnlResults" IsEnabled="False">
+                        <TextBlock Text="TGT (base64): " Margin="0,20,0,0" />
+                        <TextBox x:Name="TxtTgt" TextWrapping="Wrap" Height="100" IsReadOnly="True" Margin="0,5,0,0" ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                        <WrapPanel Margin="0,10,0,8">
+                            <Button x:Name="BtnCopyTgt" Width="138" Height="23" Click="BtnCopyTgt_Click">
+                                <TextBlock Text="Copy To Clipboard" />
+                            </Button>
+                            <Button x:Name="BtnExportKirbi" Width="120" Height="23" Margin="10,0,0,0" Click="BtnExportKirbi_Click">
+                                <TextBlock Text="Save As Kirbi" />
+                            </Button>
+                            <Button x:Name="BtnExportBase64" Margin="10,0,0,0" Width="120" Height="23" Click="BtnExportBase64_Click">
+                                <TextBlock Text="Save As Base64" />
+                            </Button>
+                        </WrapPanel>
                     </StackPanel>
-                </Expander>-->
-
-            </StackPanel>
+                </StackPanel>
+            </DockPanel>
         </ScrollViewer>
     </Grid>
 </local:RubeusTab>

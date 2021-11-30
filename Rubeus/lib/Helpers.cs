@@ -15,6 +15,187 @@ namespace Rubeus
 {
     public class Helpers
     {
+
+        #region Friendly Name Helpers
+
+        public static string GetFriendlyNameForKrbErrorCode(Interop.KERBEROS_ERROR errorCode)
+        {
+            switch (errorCode)
+            {
+                case Interop.KERBEROS_ERROR.KDC_ERR_NONE:
+                    return "No error";
+                case Interop.KERBEROS_ERROR.KDC_ERR_NAME_EXP:
+                    return "Client's entry in KDC database has expired";
+                case Interop.KERBEROS_ERROR.KDC_ERR_SERVICE_EXP:
+                    return "Server's entry in KDC database has expired";
+                case Interop.KERBEROS_ERROR.KDC_ERR_BAD_PVNO:
+                    return "Requested Kerberos version number not supported";
+                case Interop.KERBEROS_ERROR.KDC_ERR_C_OLD_MAST_KVNO:
+                    return "Client's key encrypted in old master key";
+                case Interop.KERBEROS_ERROR.KDC_ERR_S_OLD_MAST_KVNO:
+                    return "Server's key encrypted in old master key";
+                case Interop.KERBEROS_ERROR.KDC_ERR_C_PRINCIPAL_UNKNOWN:
+                    return "Client username not found in Kerberos database";
+                case Interop.KERBEROS_ERROR.KDC_ERR_S_PRINCIPAL_UNKNOWN:
+                    return "Service principal name not found in Kerberos database";
+                case Interop.KERBEROS_ERROR.KDC_ERR_PRINCIPAL_NOT_UNIQUE:
+                    return "Multiple principal entries in KDC database";
+                case Interop.KERBEROS_ERROR.KDC_ERR_NULL_KEY:
+                    return "The client or server has a null key (master key)";
+                case Interop.KERBEROS_ERROR.KDC_ERR_CANNOT_POSTDATE:
+                    return "Ticket (TGT) not eligible for postdating";
+                case Interop.KERBEROS_ERROR.KDC_ERR_NEVER_VALID:
+                    return "Requested start time is later than end time";
+                case Interop.KERBEROS_ERROR.KDC_ERR_POLICY:
+                    return "Requested start time is later than end time";
+                case Interop.KERBEROS_ERROR.KDC_ERR_BADOPTION:
+                    return "KDC cannot accommodate requested option";
+                case Interop.KERBEROS_ERROR.KDC_ERR_ETYPE_NOTSUPP:
+                    return "KDC has no support for encryption type";
+                case Interop.KERBEROS_ERROR.KDC_ERR_SUMTYPE_NOSUPP:
+                    return "KDC has no support for checksum type";
+                case Interop.KERBEROS_ERROR.KDC_ERR_PADATA_TYPE_NOSUPP:
+                    return "KDC has no support for PADATA type (pre-authentication data)";
+                case Interop.KERBEROS_ERROR.KDC_ERR_TRTYPE_NO_SUPP:
+                    return "KDC has no support for transited type";
+                case Interop.KERBEROS_ERROR.KDC_ERR_CLIENT_REVOKED:
+                    return "Client’s credentials have been revoked";
+                case Interop.KERBEROS_ERROR.KDC_ERR_SERVICE_REVOKED:
+                    return "Credentials for server have been revoked";
+                case Interop.KERBEROS_ERROR.KDC_ERR_TGT_REVOKED:
+                    return "TGT has been revoked";
+                case Interop.KERBEROS_ERROR.KDC_ERR_CLIENT_NOTYET:
+                    return "Client not yet valid - try again later";
+                case Interop.KERBEROS_ERROR.KDC_ERR_SERVICE_NOTYET:
+                     return "Server not yet valid - try again later";
+                case Interop.KERBEROS_ERROR.KDC_ERR_KEY_EXPIRED:
+                     return "Password has expired";
+                case Interop.KERBEROS_ERROR.KDC_ERR_PREAUTH_FAILED:
+                     return "Pre-authentication information was invalid. Usually caused by an incorrect password";
+                case Interop.KERBEROS_ERROR.KDC_ERR_PREAUTH_REQUIRED:
+                     return "Additional preauthentication required";
+                case Interop.KERBEROS_ERROR.KDC_ERR_SERVER_NOMATCH:
+                     return "KDC does not know about the requested server";
+                case Interop.KERBEROS_ERROR.KDC_ERR_SVC_UNAVAILABLE:
+                     return "KDC is unavailable";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_BAD_INTEGRITY:
+                     return "Integrity check on decrypted field failed";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_TKT_EXPIRED:
+                     return "The ticket has expired";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_TKT_NYV:
+                     return "The ticket is not yet valid";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_REPEAT:
+                     return "The request is a replay";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_NOT_US:
+                     return "The ticket is not for us";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_BADMATCH:
+                     return "The ticket and authenticator do not match";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_SKEW:
+                     return "The clock skew is too great. Ensure your clock is set to the same time as the server";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_BADADDR:
+                     return "Network address in network layer header doesn't match address inside ticket";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_BADVERSION:
+                     return "Protocol version numbers don't match (PVNO)";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_MSG_TYPE:
+                     return "Message type is unsupported";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_MODIFIED:
+                     return "Message stream modified and checksum didn't match";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_BADORDER:
+                     return "Message out of order (possible tampering)";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_BADKEYVER:
+                     return "Specified version of key is not available";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_NOKEY:
+                     return "Service key not available";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_MUT_FAIL:
+                     return "Mutual authentication failed";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_BADDIRECTION:
+                     return "Incorrect message direction";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_METHOD:
+                     return "Alternative authentication method required";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_BADSEQ:
+                     return "Incorrect sequence number in message";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_INAPP_CKSUM:
+                     return "Inappropriate type of checksum in message (checksum may be unsupported)";
+                case Interop.KERBEROS_ERROR.KRB_AP_PATH_NOT_ACCEPTED:
+                     return "Desired path is unreachable";
+                case Interop.KERBEROS_ERROR.KRB_ERR_RESPONSE_TOO_BIG:
+                     return "Too much data";
+                case Interop.KERBEROS_ERROR.KRB_ERR_GENERIC:
+                     return "Generic error";
+                case Interop.KERBEROS_ERROR.KRB_ERR_FIELD_TOOLONG:
+                     return "Field is too long for this implementation";
+                case Interop.KERBEROS_ERROR.KDC_ERR_CLIENT_NOT_TRUSTED:
+                     return "The client trust failed or is not implemented";
+                case Interop.KERBEROS_ERROR.KDC_ERR_KDC_NOT_TRUSTED:
+                     return "The KDC server trust failed or could not be verified";
+                case Interop.KERBEROS_ERROR.KDC_ERR_INVALID_SIG:
+                     return "The signature is invalid";
+                case Interop.KERBEROS_ERROR.KDC_ERR_KEY_TOO_WEAK:
+                     return "A higher encryption level is needed";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_USER_TO_USER_REQUIRED:
+                     return "User-to-user authorization is required";
+                case Interop.KERBEROS_ERROR.KRB_AP_ERR_NO_TGT:
+                     return "No TGT was presented or available";
+                case Interop.KERBEROS_ERROR.KDC_ERR_WRONG_REALM:
+                     return "Incorrect domain or principal";
+               default:
+                    return String.Empty;
+            }
+        }
+
+        public static string GetFriendlyNameForEType(Interop.KERB_ETYPE etype)
+        {
+            switch (etype)
+            {
+                case Interop.KERB_ETYPE.unknown:
+                    return "Unknown";
+                case Interop.KERB_ETYPE.des_cbc_crc:
+                    return "DES CRC";
+                case Interop.KERB_ETYPE.des_cbc_md4:
+                    return "DES MD4";
+                case Interop.KERB_ETYPE.des_cbc_md5:
+                    return "DES MD5";
+                case Interop.KERB_ETYPE.des3_cbc_md5:
+                    return "DES3 MD5";
+                case Interop.KERB_ETYPE.des3_cbc_sha1:
+                    return "DES3 SHA1";
+                case Interop.KERB_ETYPE.aes128_cts_hmac_sha1:
+                    return "AES-128";
+                case Interop.KERB_ETYPE.aes256_cts_hmac_sha1:
+                    return "AES-256";
+                case Interop.KERB_ETYPE.rc4_hmac:
+                    return "RC4";
+                case Interop.KERB_ETYPE.rc4_hmac_exp:
+                    return "RC4 EXP";
+                default:
+                    return etype.ToString();
+            }
+        }
+
+        public static string GetFriendlyNameForETypeFlags(Interop.SUPPORTED_ETYPE etype)
+        {
+            System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
+            if (etype.HasFlag(Interop.SUPPORTED_ETYPE.DES_CBC_CRC) || etype.HasFlag(Interop.SUPPORTED_ETYPE.DES_CBC_MD5))
+            {
+                stringBuilder.Append(" DES,");
+            }
+            if (etype.HasFlag(Interop.SUPPORTED_ETYPE.RC4_HMAC_DEFAULT) || etype.HasFlag(Interop.SUPPORTED_ETYPE.RC4_HMAC))
+            {
+                stringBuilder.Append(" RC4,");
+            }
+            if (etype.HasFlag(Interop.SUPPORTED_ETYPE.AES128_CTS_HMAC_SHA1_96))
+            {
+                stringBuilder.Append(" AES-128,");
+            }
+            if (etype.HasFlag(Interop.SUPPORTED_ETYPE.AES256_CTS_HMAC_SHA1_96))
+            {
+                stringBuilder.Append(" AES-256,");
+            }
+            return stringBuilder.ToString().TrimEnd(',').TrimStart(' ');
+        }
+
+        #endregion
+
         #region String Helpers
 
         public static IEnumerable<string> Split(string text, int partLength)
@@ -72,10 +253,12 @@ namespace Rubeus
         }
 
         //StackOverflow goodness
-        public static string ByteArrayToString(byte[] bytes) {
+        public static string ByteArrayToString(byte[] bytes)
+        {
             char[] c = new char[bytes.Length * 2];
             int b;
-            for (int i = 0; i < bytes.Length; i++) {
+            for (int i = 0; i < bytes.Length; i++)
+            {
                 b = bytes[i] >> 4;
                 c[i * 2] = (char)(55 + b + (((b - 10) >> 31) & -7));
                 b = bytes[i] & 0xF;
@@ -125,9 +308,9 @@ namespace Rubeus
         #endregion
 
 
-            #region Token Helpers
+        #region Token Helpers
 
-            public static bool IsHighIntegrity()
+        public static bool IsHighIntegrity()
         {
             // returns true if the current process is running with adminstrative privs in a high integrity context
             WindowsIdentity identity = WindowsIdentity.GetCurrent();
@@ -333,7 +516,7 @@ namespace Rubeus
             // Can't use IO.Path.GetFileName and IO.Path.GetDirectoryName because they get confused by illegal file name characters (the whole reason we are here)
             string fileName = filePath;
             string directoryPath = string.Empty;
-            int lastSeparatorPosition = filePath.LastIndexOf(Path.DirectorySeparatorChar); 
+            int lastSeparatorPosition = filePath.LastIndexOf(Path.DirectorySeparatorChar);
             if ((lastSeparatorPosition > -1) && (filePath.Length > lastSeparatorPosition))
             {
                 fileName = filePath.Substring(lastSeparatorPosition + 1);
@@ -353,10 +536,23 @@ namespace Rubeus
 
         #region Misc Helpers
 
+        public static string EncryptPassword(string domain,string username,string password, Interop.KERB_ETYPE encType)
+        {
+            string salt = String.Format("{0}{1}", domain.ToUpper(), username);
+
+            // special case for computer account salts
+            if (username.EndsWith("$"))
+            {
+                salt = String.Format("{0}host{1}.{2}", domain.ToUpper(), username.TrimEnd('$').ToLower(), domain.ToLower());
+            }
+
+            return Crypto.KerberosPasswordHash(encType, password, salt);
+        }
+
         public static void RandomDelayWithJitter(int delay, int jitter)
         {
             // given delay == ms and jitter = %, sleep for that amount
-            
+
             var timeToSleep = 0;
 
             if (delay == 0)

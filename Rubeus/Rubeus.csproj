@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Rubeus</RootNamespace>
     <AssemblyName>Rubeus</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
     <PublishUrl>publish\</PublishUrl>
@@ -100,8 +100,13 @@
     <Compile Include="Commands\Triage.cs" />
     <Compile Include="Domain\ArgumentParser.cs" />
     <Compile Include="Domain\ArgumentParserResult.cs" />
+    <Compile Include="Domain\AsRepRoastResult.cs" />
     <Compile Include="Domain\CommandCollection.cs" />
     <Compile Include="Domain\Info.cs" />
+    <Compile Include="Domain\DomainSettings.cs" />
+    <Compile Include="Domain\KerberoastResult.cs" />
+    <Compile Include="Domain\KerberoastSettings.cs" />
+    <Compile Include="Domain\TicketHash.cs" />
     <Compile Include="lib\Ask.cs" />
     <Compile Include="lib\Bruteforcer.cs" />
     <Compile Include="lib\ConsoleTable.cs" />

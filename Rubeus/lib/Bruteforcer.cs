@@ -41,7 +41,7 @@ namespace Rubeus
             {
                 foreach (string username in usernames)
                 {
-                    if(this.TestUsernamePassword(username, password))
+                    if (this.TestUsernamePassword(username, password))
                     {
                         success = true;
                     }
@@ -91,9 +91,7 @@ namespace Rubeus
 
         private bool HandleKerberosError(KerberosErrorException ex, string username, string password)
         {
-            
-
-            KRB_ERROR krbError = ex.krbError;
+            KRB_ERROR krbError = ex.NativeKrbError;
             bool ret = false;
 
             switch ((Interop.KERBEROS_ERROR)krbError.error_code)
@@ -104,19 +102,20 @@ namespace Rubeus
                 case Interop.KERBEROS_ERROR.KDC_ERR_C_PRINCIPAL_UNKNOWN:
                     this.ReportInvalidUser(username);
                     break;
+                case Interop.KERBEROS_ERROR.KDC_ERR_KEY_EXPIRED:
+                    this.ReportValidPassword(username, password, null, (Interop.KERBEROS_ERROR)krbError.error_code);
+                    ret = true;
+                    break;
                 case Interop.KERBEROS_ERROR.KDC_ERR_CLIENT_REVOKED:
                     this.ReportBlockedUser(username);
                     break;
                 case Interop.KERBEROS_ERROR.KDC_ERR_ETYPE_NOTSUPP:
                     this.ReportInvalidEncryptionType(username, krbError);
                     break;
-                case Interop.KERBEROS_ERROR.KDC_ERR_KEY_EXPIRED:
-                    this.ReportValidPassword(username, password, null, (Interop.KERBEROS_ERROR)krbError.error_code);
-                    ret = true;
-                    break;
                 default:
                     this.ReportKrbError(username, krbError);
-                    throw ex;
+                    break;
+                    //throw ex;
             }
             return ret;
         }
