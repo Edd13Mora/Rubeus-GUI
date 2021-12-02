@@ -185,7 +185,15 @@ namespace RubeusGui.Windows.Tabs
                     settings.Delay = delay;
                     settings.Jitter = jitter;
                 }
-                if ((bool)ChkLimitResults.IsChecked) { settings.ResultsLimit = Convert.ToInt32(TxtResultsLimit.Text); }
+                try
+                {
+                    if ((bool)ChkLimitResults.IsChecked) { settings.ResultsLimit = Convert.ToInt32(TxtResultsLimit.Text); }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Please specify a valid number of results to limit to", "Invalid Results Limit", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
                 if ((bool)RdoEnterprise.IsChecked) { settings.Enterprise = true; }
                 if ((bool)RdoAutoEnterprise.IsChecked) { settings.AutoEnterprise = true; }
 

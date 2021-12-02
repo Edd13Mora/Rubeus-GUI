@@ -464,6 +464,11 @@ namespace Rubeus
 
                     foreach (IDictionary<string, Object> user in users)
                     {
+                        if (settings.ResultsLimit > 0 && results.Count == settings.ResultsLimit)
+                        {
+                            Console.WriteLine("[!] Hit results limit specified by user so not processing any more accounts");
+                            break;
+                        }
                         KerberoastResult roastResult = new KerberoastResult();
                         string samAccountName = (string)user["samaccountname"];
                         string distinguishedName = (string)user["distinguishedname"];

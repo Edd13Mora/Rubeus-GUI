@@ -6,6 +6,7 @@
 - Due to the change above, added an option to the Brute Forcer to skip the first AS-REQ without preauth if you want to speed things up but accept usernames being case sensitive 
 - Added support for requesting TGTs for usernames that contain UTF8 characters
 - Improved error messages when kerberoasting or AS-REP roasting
+- The option to limit the number of kerberoasting results actually works now
 
 ##### Version 0.3.0
 
