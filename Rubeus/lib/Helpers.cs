@@ -18,7 +18,7 @@ namespace Rubeus
 
         #region Friendly Name Helpers
 
-        public static string GetFriendlyNameForKrbErrorCode(Interop.KERBEROS_ERROR errorCode)
+        public static string GetDescriptionForKrbErrorCode(Interop.KERBEROS_ERROR errorCode)
         {
             switch (errorCode)
             {
@@ -71,7 +71,7 @@ namespace Rubeus
                 case Interop.KERBEROS_ERROR.KDC_ERR_KEY_EXPIRED:
                      return "Password has expired";
                 case Interop.KERBEROS_ERROR.KDC_ERR_PREAUTH_FAILED:
-                     return "Pre-authentication information was invalid. Usually caused by an incorrect password";
+                     return "Pre-authentication information was invalid. This is usually caused by an incorrect password";
                 case Interop.KERBEROS_ERROR.KDC_ERR_PREAUTH_REQUIRED:
                      return "Additional preauthentication required";
                 case Interop.KERBEROS_ERROR.KDC_ERR_SERVER_NOMATCH:
@@ -139,7 +139,7 @@ namespace Rubeus
                 case Interop.KERBEROS_ERROR.KDC_ERR_WRONG_REALM:
                      return "Incorrect domain or principal";
                default:
-                    return String.Empty;
+                    return string.Empty;
             }
         }
 

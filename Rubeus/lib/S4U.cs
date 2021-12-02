@@ -14,7 +14,7 @@ namespace Rubeus
         public static void Execute(string userName, string domain, string keyString, Interop.KERB_ETYPE etype, string targetUser, string targetSPN = "", string outfile = "", bool ptt = false, string domainController = "", string altService = "", KRB_CRED tgs = null, string targetDomainController = "", string targetDomain = "", bool self = false, bool opsec = false, bool bronzebit = false)
         {
             // first retrieve a TGT for the user
-            KRB_CRED kirbi = Ask.TGT(userName, domain, keyString, etype, null, false, domainController, new LUID(), false, opsec);
+            KRB_CRED kirbi = Ask.TGTFromHash(userName, domain, keyString, etype, null, false, domainController, new LUID(), false, opsec);
             
             // execute the s4u process
             Execute(kirbi, targetUser, targetSPN, outfile, ptt, domainController, altService, tgs, targetDomainController, targetDomain, self, opsec, bronzebit, keyString, etype);

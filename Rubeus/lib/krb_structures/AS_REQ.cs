@@ -17,7 +17,7 @@ namespace Rubeus
     //                        -- NOTE: not empty --,
     //    req-body        [4] KDC-REQ-BODY
     //}
-    
+
     public class AS_REQ
     {
         public static AS_REQ NewASReq(string userName, string domain, Interop.KERB_ETYPE etype, bool opsec = false)
@@ -53,7 +53,6 @@ namespace Rubeus
                 req.req_body.etypes.Add(Interop.KERB_ETYPE.rc4_hmac_exp);
                 req.req_body.etypes.Add(Interop.KERB_ETYPE.old_exp);
                 req.req_body.etypes.Add(Interop.KERB_ETYPE.des_cbc_md5);
-
             }
             else
             {
@@ -64,14 +63,14 @@ namespace Rubeus
             return req;
         }
 
-        public static AS_REQ NewASReq(string userName, string domain, string keyString, Interop.KERB_ETYPE etype, bool opsec = false, bool changepw = false )
+        public static AS_REQ NewASReq(string userName, string domain, string keyString, Interop.KERB_ETYPE etype, bool opsec = false, bool changepw = false)
         {
             // build a new AS-REQ for the given userName, domain, and etype, w/ PA-ENC-TIMESTAMP
             //  used for "legit" AS-REQs w/ pre-auth
 
             // set pre-auth
             AS_REQ req = new AS_REQ(keyString, etype, opsec);
-            
+
             // req.padata.Add()
 
             // set the username to request a TGT for
@@ -84,10 +83,13 @@ namespace Rubeus
             //      service and other unique instance (krbtgt)
             req.req_body.sname.name_type = Interop.PRINCIPAL_TYPE.NT_SRV_INST;
 
-            if (!changepw) {
+            if (!changepw)
+            {
                 req.req_body.sname.name_string.Add("krbtgt");
                 req.req_body.sname.name_string.Add(domain);
-            } else {
+            }
+            else
+            {
                 req.req_body.sname.name_string.Add("kadmin");
                 req.req_body.sname.name_string.Add("changepw");
             }
@@ -113,11 +115,12 @@ namespace Rubeus
                 req.req_body.etypes.Add(etype);
             }
 
-            return req; 
+            return req;
         }
 
         //TODO: Insert DHKeyPair parameter also.
-        public static AS_REQ NewASReq(string userName, string domain, X509Certificate2 cert, KDCKeyAgreement agreement, Interop.KERB_ETYPE etype, bool verifyCerts = false) {
+        public static AS_REQ NewASReq(string userName, string domain, X509Certificate2 cert, KDCKeyAgreement agreement, Interop.KERB_ETYPE etype, bool verifyCerts = false)
+        {
 
             // build a new AS-REQ for the given userName, domain, and etype, w/ PA-ENC-TIMESTAMP
             //  used for "legit" AS-REQs w/ pre-auth
@@ -164,19 +167,20 @@ namespace Rubeus
             msg_type = (long)Interop.KERB_MESSAGE_TYPE.AS_REQ;
 
             padata = new List<PA_DATA>();
-            
+
             // add the encrypted timestamp
             padata.Add(new PA_DATA(keyString, etype));
 
             // add the include-pac == true
             padata.Add(new PA_DATA());
-            
+
             req_body = new KDCReqBody(true, opsec);
 
             this.keyString = keyString;
         }
 
-        public AS_REQ(X509Certificate2 pkCert, KDCKeyAgreement agreement, bool verifyCerts = false) {
+        public AS_REQ(X509Certificate2 pkCert, KDCKeyAgreement agreement, bool verifyCerts = false)
+        {
 
             // default, for creation
             pvno = 5;
@@ -190,7 +194,7 @@ namespace Rubeus
             padata.Add(new PA_DATA());
 
             // add the encrypted timestamp
-            padata.Add(new PA_DATA(pkCert, agreement,  req_body, verifyCerts));           
+            padata.Add(new PA_DATA(pkCert, agreement, req_body, verifyCerts));
         }
 
         public AS_REQ(byte[] data)
@@ -229,7 +233,7 @@ namespace Rubeus
                         break;
                     case 3:
                         // sequence of pa-data
-                        foreach(AsnElt pa in s.Sub[0].Sub)
+                        foreach (AsnElt pa in s.Sub[0].Sub)
                         {
                             padata.Add(new PA_DATA(pa));
                         }
@@ -285,7 +289,7 @@ namespace Rubeus
             return totalSeq;
         }
 
-        public long pvno { get; set;}
+        public long pvno { get; set; }
 
         public long msg_type { get; set; }
 

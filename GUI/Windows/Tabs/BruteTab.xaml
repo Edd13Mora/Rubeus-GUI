@@ -37,18 +37,18 @@
                     <Border HorizontalAlignment="Stretch" Margin="8,0,0,0" Height="1" VerticalAlignment="Center" Background="{StaticResource SeparatorBorderColor}" />
                 </DockPanel>
 
-                <StackPanel Margin="24,10,0,0">
+                <StackPanel Margin="24,8,0,0">
                     <WrapPanel>
                         <RadioButton x:Name="RdoSingleUsername" IsChecked="True" VerticalAlignment="Center" GroupName="Usernames">
                             <TextBlock Text="Single username:" />
                         </RadioButton>
-                        <TextBox x:Name="TxtSingleUsername" Width="160" Height="22" Margin="5,0,0,0" IsEnabled="{Binding ElementName=RdoSingleUsername,Path=IsChecked}" ToolTip="Usernames are case sensitive (hopefully will change in future version)" />
+                        <TextBox x:Name="TxtSingleUsername" Width="160" Height="22" Margin="5,0,0,0" IsEnabled="{Binding ElementName=RdoSingleUsername,Path=IsChecked}" ToolTip="Username (aka SAMAccountName) of the user you want to test passwords against" />
                     </WrapPanel>
                     <WrapPanel Margin="0,8,0,0">
                         <RadioButton x:Name="RdoUsernamesFromFile" VerticalAlignment="Center" GroupName="Usernames">
                             <TextBlock Text="Usernames from file:" />
                         </RadioButton>
-                        <TextBox x:Name="TxtUsernameList" Width="290" Height="22" Margin="5,0,0,0" IsEnabled="{Binding ElementName=RdoUsernamesFromFile,Path=IsChecked}" ToolTip="Each username should be on its own line in the text file. Usernames are case sensitive" />
+                        <TextBox x:Name="TxtUsernameList" Width="290" Height="22" Margin="5,0,0,0" IsEnabled="{Binding ElementName=RdoUsernamesFromFile,Path=IsChecked}" ToolTip="Each username should be on its own line in the text file" />
                         <Button x:Name="BtnBrowseUsernameList" Click="BtnBrowseUsernameList_Click" Width="75" Margin="5,0,0,0" IsEnabled="{Binding ElementName=RdoUsernamesFromFile,Path=IsChecked}">
                             <TextBlock Text="Browse" />
                         </Button>
@@ -56,9 +56,6 @@
                     <RadioButton x:Name="RdoUsernamesFromDomain" Margin="0,11,0,0" VerticalAlignment="Center" GroupName="Usernames" ToolTip="In most domains this will require valid domain credentials to perform the LDAP search (unlike the other methods)">
                         <TextBlock Text="Get all domain usernames from LDAP search" />
                     </RadioButton>
-                    <CheckBox x:Name="ChkParallel" Margin="0,18,0,0" IsChecked="True" ToolTip="Use multithreading to test credentials for multiple users at the same time (should be faster but depends on hardware)">
-                        <TextBlock Text="Process multiple users in parallel" Margin="3,0,0,0" />
-                    </CheckBox>
                 </StackPanel>
 
                 <DockPanel Margin="0,16,0,0">
@@ -88,6 +85,22 @@
                             <TextBlock Text="Browse" />
                         </Button>
                     </WrapPanel>
+                </StackPanel>
+                <DockPanel Margin="0,16,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Stretch="None" VerticalAlignment="Center" Source="/Images/adjust_16px.png" />
+                        <TextBlock Text="Options:" Margin="4,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Border HorizontalAlignment="Stretch" Margin="8,0,0,0" Height="1" VerticalAlignment="Center" Background="{StaticResource SeparatorBorderColor}" />
+                </DockPanel>
+
+                <StackPanel Margin="24,14,0,0">
+                    <CheckBox x:Name="ChkParallel" IsChecked="True" ToolTip="Use multithreading to speed things up by testing credentials for multiple users at the same time">
+                        <TextBlock Text="Process multiple users in parallel" Margin="3,0,0,0" />
+                    </CheckBox>
+                    <CheckBox x:Name="ChkSkipNoPreAuth" Margin="0,10,0,0" ToolTip="Slightly faster but has the side effect of making usernames case sensitive (because we can't get the correct AES salt from the response to the first request)">
+                        <TextBlock Text="Skip initial &quot;no pre-auth&quot; request" Margin="3,0,0,0" />
+                    </CheckBox>
                 </StackPanel>
 
                 <WrapPanel Margin="0,28,0,0" HorizontalAlignment="Left" DockPanel.Dock="Bottom">
@@ -125,7 +138,7 @@
 
                 </WrapPanel>
             </StackPanel>
-            <ListView x:Name="LsvResults" Margin="0,10,0,10" MinHeight="70" SelectionMode="Single" IsEnabled="False">
+            <ListView x:Name="LsvResults" Margin="0,10,0,10" MinHeight="90" SelectionMode="Single" IsEnabled="False">
                 <ListView.ContextMenu>
                     <ContextMenu x:Name="CtxResultsListView">
                         <MenuItem x:Name="CtxItemCopyUsernameAndPassword" Header="Copy Username &amp; Password" Click="CtxItemCopyUsernameAndPassword_Click" />

@@ -7,33 +7,68 @@ using Rubeus.lib.Interop;
 using Rubeus.Asn1;
 using Rubeus.Kerberos;
 using Rubeus.Kerberos.PAC;
-
+using System.Collections.Generic;
 
 namespace Rubeus
 {
 
-    public class RubeusException : Exception
-    {
-        public RubeusException(string message)
-            : base(message)
-        {
-        }
-    }
-
-    public class KerberosErrorException : RubeusException
-    {
-        public KRB_ERROR NativeKrbError { get; set; }
-
-        public KerberosErrorException(string message, KRB_ERROR krbError)
-            : base(message)
-        {
-            this.NativeKrbError = krbError;
-        }
-    }
-
     public class Ask
     {
-        public static KRB_CRED TGT(string userName, string domain, string keyString, Interop.KERB_ETYPE etype, string outfile, bool ptt, string domainController = "", LUID luid = new LUID(), bool describe = false, bool opsec = false, string servicekey = "", bool changepw = false)
+
+        public enum TicketType
+        {
+            Unknown,
+            NoPreAuthTgt,
+            PreAuthTgt,
+            TGS
+        }
+
+        //TODO: Combine the TGTFromHash and TGTFromPassword functions
+
+        /// <summary>
+        /// Gets a TGT using a username and password, encrypting the password with the specified encryption. If AES encryption is used then the username is not case sensitive as long as opsec or sendNoPreAuthFirst are set to true
+        /// </summary>
+        public static KRB_CRED TGTFromPassword(string username, string domain, string plaintextPassword, Interop.KERB_ETYPE etype, string outfile, bool ptt, string dc, LUID luid = new LUID(), bool describe = false, bool opsec = false, string servicekey = "", bool changepw = false, bool skipNoPreAuth = false)
+        {
+            string hash = Helpers.EncryptPassword(domain, username, plaintextPassword, etype);
+            byte[] response = null;
+
+            if (!skipNoPreAuth)
+            {
+                try
+                {
+                    response = NoPreAuthTgt(username, domain, hash, etype, dc, outfile, ptt, luid, describe, false, opsec, plaintextPassword); ;
+                }
+                // Catch ONLY the expected "preauth required" error (and also "password expired" error so that brute forcing doesn't think it got the right password with this no preauth request)
+                catch (KerberosException kerbEx) when (kerbEx.ErrorType == Interop.KERBEROS_ERROR.KDC_ERR_PREAUTH_REQUIRED || kerbEx.ErrorType == Interop.KERBEROS_ERROR.KDC_ERR_KEY_EXPIRED)
+                {
+                    // Grab the correct salt that is returned with the error message. This is how we avoid usernames being case sensitive for AES salts. See https://vbscrub.com/2021/11/29/how-windows-stops-kerberos-usernames-being-case-sensitive/
+                    foreach (PA_ETYPE_INFO2 preAuthInfo in kerbEx.PreAuthInfo)
+                    {
+                        if (preAuthInfo.etype == etype && !string.IsNullOrEmpty(preAuthInfo.salt))
+                        {
+                            // Encrypt the hash using the salt the server gave us
+                            hash = Crypto.KerberosPasswordHash(etype, plaintextPassword, preAuthInfo.salt);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // If the user has preauth enabled then we won't have got a TGT yet so try again with preauth
+            if (response == null)
+            {
+                AS_REQ userHashASREQ = AS_REQ.NewASReq(username, domain, hash, etype, opsec, changepw);
+                response = PreAuthTgt(userHashASREQ, etype, outfile, ptt, dc, luid, describe, true, servicekey);
+            }
+
+            return new KRB_CRED(response);
+        }
+        
+        /// <summary>
+        /// Gets a TGT using a username and an encrypted hash of the user's password. If the hash was encrypted with AES then the username used as the salt *is* case sensitive
+        /// </summary>
+        public static KRB_CRED TGTFromHash(string userName, string domain, string keyString, Interop.KERB_ETYPE etype, string outfile, bool ptt, string domainController = "", LUID luid = new LUID(), bool describe = false, bool opsec = false, string servicekey = "", bool changepw = false)
         {
             // send request without Pre-Auth to emulate genuine traffic
             byte[] response = null;
@@ -41,11 +76,13 @@ namespace Rubeus
             {
                 try
                 {
-                    response = NoPreAuthTGT(userName, domain, keyString, etype, domainController, outfile, ptt, luid, describe, true);
+                    response = NoPreAuthTgt(userName, domain, keyString, etype, domainController, outfile, ptt, luid, describe, true);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine("[*] Error trying to get TGT without preauth (to be expected unless user has no preauth enabled): " + ex.Message);
+                    // Swallow this exception because we can't do anything about it here (as we don't have
+                    // the user's password to try encrypt again with the new salt the server might have sent back)
                 }
             }
 
@@ -55,18 +92,18 @@ namespace Rubeus
                 Console.WriteLine("[*] Using {0} hash: {1}", etype, keyString);
                 Console.WriteLine("[*] Building AS-REQ (w/ preauth) for: '{0}\\{1}'", domain, userName);
                 AS_REQ userHashASREQ = AS_REQ.NewASReq(userName, domain, keyString, etype, opsec, changepw);
-                response = InnerTGT(userHashASREQ, etype, outfile, ptt, domainController, luid, describe, true, opsec, servicekey);
+                response = PreAuthTgt(userHashASREQ, etype, outfile, ptt, domainController, luid, describe, true, servicekey);
             }
 
             return new KRB_CRED(response);
         }
 
-        public static byte[] NoPreAuthTGT(string userName, string domain, string keyString, Interop.KERB_ETYPE etype, string domainController, string outfile, bool ptt, LUID luid = new LUID(), bool describe = false, bool verbose = false)
+        public static byte[] NoPreAuthTgt(string userName, string domain, string keyHash, Interop.KERB_ETYPE etype, string domainController, string outfile, bool ptt, LUID luid = new LUID(), bool describe = false, bool verbose = false, bool opsec = false, string plaintextPassword = null)
         {
             string dcIP = Networking.GetDCIP(domainController, true, domain);
             if (String.IsNullOrEmpty(dcIP)) { throw new RubeusException("Could not get domain controller IP address for domain " + domain + "\n Please try specifying a DC IP manually"); }
 
-            AS_REQ NoPreAuthASREQ = AS_REQ.NewASReq(userName, domain, etype, true);
+            AS_REQ NoPreAuthASREQ = AS_REQ.NewASReq(userName, domain, etype, opsec);
             byte[] reqBytes = NoPreAuthASREQ.Encode().Encode();
 
             byte[] response = Networking.SendBytes(dcIP, 88, reqBytes);
@@ -84,13 +121,19 @@ namespace Rubeus
             if (responseTag == (int)Interop.KERB_MESSAGE_TYPE.AS_REP)
             {
                 Console.WriteLine("[-] AS-REQ w/o preauth successful! {0} has pre-authentication disabled!", userName);
-                return HandleASREP(responseAsn, etype, keyString, outfile, ptt, luid, describe, verbose);
+                return GetTgtFromASREP(responseAsn, etype, keyHash, outfile, ptt, TicketType.NoPreAuthTgt, luid, describe, verbose, plaintextPassword: plaintextPassword);
+            }
+            else if (responseTag == (int)Interop.KERB_MESSAGE_TYPE.ERROR)
+            {
+                KRB_ERROR nativeError = new KRB_ERROR(responseAsn.Sub[0]);
+                throw KerberosException.FromNativeError(nativeError);
             }
             else
             {
                 throw new RubeusException("Unexpected response type from server (expected AS-REP (" + (int)Interop.KERB_MESSAGE_TYPE.AS_REP + ") but got " + responseTag);
             }
         }
+
 
         //CCob (@_EthicalChaos_):
         // Based on KerberosAsymmetricCredential::Get function from Kerberos.NET from here:
@@ -134,7 +177,7 @@ namespace Rubeus
             }
         }
 
-        public static byte[] TGT(string userName, string domain, string certFile, string certPass, Interop.KERB_ETYPE etype, string outfile, bool ptt, string domainController = "", LUID luid = new LUID(), bool describe = false, bool verifyCerts = false, string servicekey = "", bool getCredentials = false)
+        public static byte[] TGTFromCertificate(string userName, string domain, string certFile, string certPass, Interop.KERB_ETYPE etype, string outfile, bool ptt, string domainController = "", LUID luid = new LUID(), bool describe = false, bool verifyCerts = false, string servicekey = "", bool getCredentials = false)
         {
             try
             {
@@ -158,13 +201,12 @@ namespace Rubeus
                 Console.WriteLine("[*] Building AS-REQ (w/ PKINIT preauth) for: '{0}\\{1}'", domain, userName);
 
                 AS_REQ pkinitASREQ = AS_REQ.NewASReq(userName, domain, cert, agreement, etype, verifyCerts);
-                return InnerTGT(pkinitASREQ, etype, outfile, ptt, domainController, luid, describe, true, false, servicekey, getCredentials);
+                return PreAuthTgt(pkinitASREQ, etype, outfile, ptt, domainController, luid, describe, true, servicekey, getCredentials);
 
             }
-            catch (KerberosErrorException ex)
+            catch (KerberosException ex)
             {
-                KRB_ERROR error = ex.NativeKrbError;
-                Console.WriteLine("\r\n[X] KRB-ERROR ({0}) : {1}\r\n", error.error_code, (Interop.KERBEROS_ERROR)error.error_code);
+                Console.WriteLine("\r\n[X] KRB-ERROR ({0}) : {1}\r\n", ex.ErrorCode, ex.ErrorType);
             }
             catch (RubeusException ex)
             {
@@ -177,7 +219,7 @@ namespace Rubeus
         public static bool GetPKInitRequest(AS_REQ asReq, out PA_PK_AS_REQ pkAsReq)
         {
 
-            if (asReq.padata != null)
+            if (asReq?.padata != null)
             {
                 foreach (PA_DATA paData in asReq.padata)
                 {
@@ -209,7 +251,7 @@ namespace Rubeus
             }
         }
 
-        public static byte[] InnerTGT(AS_REQ asReq, Interop.KERB_ETYPE etype, string outfile, bool ptt, string domainController = "", LUID luid = new LUID(), bool describe = false, bool verbose = false, bool opsec = false, string serviceKey = "", bool getCredentials = false)
+        public static byte[] PreAuthTgt(AS_REQ asReq, Interop.KERB_ETYPE etype, string outfile, bool ptt, string domainController = "", LUID luid = new LUID(), bool describe = false, bool verbose = false, string serviceKey = "", bool getCredentials = false)
         {
             if ((ulong)luid != 0)
             {
@@ -240,36 +282,28 @@ namespace Rubeus
             }
 
             // check the response value
-            int responseTag = responseAsn.TagValue;
+            Interop.KERB_MESSAGE_TYPE responseTag = (Interop.KERB_MESSAGE_TYPE)responseAsn.TagValue;
 
-            if (responseTag == (int)Interop.KERB_MESSAGE_TYPE.AS_REP)
+            if (responseTag == Interop.KERB_MESSAGE_TYPE.AS_REP)
             {
                 if (verbose)
                 {
                     Console.WriteLine("[+] TGT request successful!");
                 }
 
-                byte[] kirbiBytes = HandleASREP(responseAsn, etype, asReq.keyString, outfile, ptt, luid, describe, verbose, asReq, serviceKey, getCredentials, dcIP);
+                byte[] kirbiBytes = GetTgtFromASREP(responseAsn, etype, asReq.keyString, outfile, ptt, TicketType.PreAuthTgt, luid, describe, verbose, asReq, serviceKey, getCredentials, dcIP);
 
                 return kirbiBytes;
             }
-            else if (responseTag == (int)Interop.KERB_MESSAGE_TYPE.ERROR)
+            else if (responseTag == Interop.KERB_MESSAGE_TYPE.ERROR)
             {
                 // parse the response to an KRB-ERROR
                 KRB_ERROR kerbError = new KRB_ERROR(responseAsn.Sub[0]);
-                Interop.KERBEROS_ERROR kerbErrorCode = (Interop.KERBEROS_ERROR)kerbError.error_code;
-                string extraDetails = string.Empty;
-                if (kerbErrorCode == Interop.KERBEROS_ERROR.KRB_AP_ERR_SKEW)
-                {
-                    extraDetails = $". The current time on the server is {kerbError.stime}";
-                }
-                string errorDescription = Helpers.GetFriendlyNameForKrbErrorCode(kerbErrorCode);
-                // Important to throw KerberosErrorException here because Bruteforcer class relies on only catching these exceptions specifically
-                throw new KerberosErrorException($"Server responded with error: {errorDescription + extraDetails}. Error code {(long)kerbErrorCode} ({kerbErrorCode})", kerbError);
+                throw KerberosException.FromNativeError(kerbError);
             }
             else
             {
-                throw new RubeusException($"Unknown application tag: {responseTag}");
+                throw new RubeusException($"Unexpected response to AS-REQ. Response tag was: {responseTag}");
             }
         }
 
@@ -302,7 +336,7 @@ namespace Rubeus
 
         public static byte[] TGS(string userName, string domain, Ticket providedTicket, byte[] clientKey, Interop.KERB_ETYPE paEType, string service, Interop.KERB_ETYPE requestEType = Interop.KERB_ETYPE.subkey_keymaterial, string outfile = "", bool ptt = false, string domainController = "", bool display = true, bool enterprise = false, bool roast = false, bool opsec = false, KRB_CRED tgs = null, string targetDomain = "", string servicekey = "", string asrepkey = "", bool u2u = false, string targetUser = "", bool printargs = false)
         {
-            string dcIP = Networking.GetDCIP(domainController, display);
+            string dcIP = Networking.GetDCIP(domainController, display, domain);
             if (String.IsNullOrEmpty(dcIP)) { return null; }
 
             if (display)
@@ -540,7 +574,8 @@ namespace Rubeus
             {
                 // parse the response to an KRB-ERROR
                 KRB_ERROR error = new KRB_ERROR(responseAsn.Sub[0]);
-                Console.WriteLine("\r\n[X] KRB-ERROR ({0}) : {1}\r\n", error.error_code, (Interop.KERBEROS_ERROR)error.error_code);
+                throw KerberosException.FromNativeError(error);
+                //Console.WriteLine("\r\n[X] KRB-ERROR ({0}) : {1}\r\n", error.error_code, (Interop.KERBEROS_ERROR)error.error_code);
             }
             else
             {
@@ -549,64 +584,107 @@ namespace Rubeus
             return null;
         }
 
-        private static byte[] HandleASREP(AsnElt responseAsn, Interop.KERB_ETYPE etype, string keyString, string outfile, bool ptt, LUID luid = new LUID(), bool describe = false, bool verbose = false, AS_REQ asReq = null, string serviceKey = "", bool getCredentials = false, string dcIP = "")
+        private static byte[] GetTgtFromASREP(AsnElt responseAsn, Interop.KERB_ETYPE etype, string keyString, string outfile, bool ptt, TicketType ticketType, LUID luid = new LUID(), bool describe = false, bool verbose = false, AS_REQ asReq = null, string serviceKey = "", bool getCredentials = false, string dcIP = "", string plaintextPassword = null)
         {
             // parse the response to an AS-REP
-            AS_REP rep = new AS_REP(responseAsn);
+            AS_REP asRep = new AS_REP(responseAsn);
 
             // convert the key string to bytes
             byte[] key;
             if (GetPKInitRequest(asReq, out PA_PK_AS_REQ pkAsReq))
             {
                 // generate the decryption key using Diffie Hellman shared secret 
-                PA_PK_AS_REP pkAsRep = (PA_PK_AS_REP)rep.padata[0].value;
+                PA_PK_AS_REP pkAsRep = (PA_PK_AS_REP)asRep.padata[0].value;
                 key = pkAsReq.Agreement.GenerateKey(pkAsRep.DHRepInfo.KDCDHKeyInfo.SubjectPublicKey.DepadLeft(), new byte[0],
                     pkAsRep.DHRepInfo.ServerDHNonce, GetKeySize(etype));
             }
             else
             {
+                // Get correct salt from AS-REP (otherwise usernames will be case sensitive if using AES). 
+                // For preauth requests this salt will be returned in a KRB_ERROR response from the server but if we're doing a no preauth request then the server just sends back 
+                // the AS-REP straight away and that contains the salt in its padata field, so that's what we grab here
+                if (!string.IsNullOrEmpty(plaintextPassword) && asRep.padata != null)
+                {
+                    foreach (PA_DATA padata in asRep.padata)
+                    {
+                        if (padata.type == Interop.PADATA_TYPE.ETYPE_INFO2)
+                        {
+                            PA_ETYPE_INFO2 etypeInfo = (PA_ETYPE_INFO2)padata.value;
+                            if (etypeInfo.etype == etype && !string.IsNullOrEmpty(etypeInfo.salt))
+                            {
+                                keyString = Crypto.KerberosPasswordHash(etype, plaintextPassword, etypeInfo.salt);
+                                break;
+                            }
+                        }
+                    }
+                }
+
                 // convert the key string to bytes
-                key = Helpers.StringToByteArray(asReq.keyString);
+                key = Helpers.StringToByteArray(keyString);
+            }
+
+            if (asRep.enc_part.etype != (int)etype)
+            {
+                throw new RubeusException($"The supplied encyption key uses {etype} but the response from the server is encrypted with {(Interop.KERB_ETYPE)asRep.enc_part.etype}");
             }
 
             // decrypt the enc_part containing the session key/etc.
-            // TODO: error checking on the decryption "failing"...
-            byte[] outBytes;
+            byte[] decryptedBytes;
 
             if (etype == Interop.KERB_ETYPE.des_cbc_md5)
             {
                 // KRB_KEY_USAGE_TGS_REP_EP_SESSION_KEY = 8
-                outBytes = Crypto.KerberosDecrypt(etype, Interop.KRB_KEY_USAGE_TGS_REP_EP_SESSION_KEY, key, rep.enc_part.cipher);
+                decryptedBytes = Crypto.KerberosDecrypt(etype, Interop.KRB_KEY_USAGE_TGS_REP_EP_SESSION_KEY, key, asRep.enc_part.cipher);
             }
             else if (etype == Interop.KERB_ETYPE.rc4_hmac)
             {
                 // KRB_KEY_USAGE_TGS_REP_EP_SESSION_KEY = 8
-                outBytes = Crypto.KerberosDecrypt(etype, Interop.KRB_KEY_USAGE_TGS_REP_EP_SESSION_KEY, key, rep.enc_part.cipher);
+                decryptedBytes = Crypto.KerberosDecrypt(etype, Interop.KRB_KEY_USAGE_TGS_REP_EP_SESSION_KEY, key, asRep.enc_part.cipher);
             }
             else if (etype == Interop.KERB_ETYPE.aes128_cts_hmac_sha1)
             {
                 // KRB_KEY_USAGE_AS_REP_EP_SESSION_KEY = 3
-                outBytes = Crypto.KerberosDecrypt(etype, Interop.KRB_KEY_USAGE_AS_REP_EP_SESSION_KEY, key, rep.enc_part.cipher);
+                decryptedBytes = Crypto.KerberosDecrypt(etype, Interop.KRB_KEY_USAGE_AS_REP_EP_SESSION_KEY, key, asRep.enc_part.cipher);
             }
             else if (etype == Interop.KERB_ETYPE.aes256_cts_hmac_sha1)
             {
                 // KRB_KEY_USAGE_AS_REP_EP_SESSION_KEY = 3
-                outBytes = Crypto.KerberosDecrypt(etype, Interop.KRB_KEY_USAGE_AS_REP_EP_SESSION_KEY, key, rep.enc_part.cipher);
+                decryptedBytes = Crypto.KerberosDecrypt(etype, Interop.KRB_KEY_USAGE_AS_REP_EP_SESSION_KEY, key, asRep.enc_part.cipher);
             }
             else
             {
                 throw new RubeusException("[X] Encryption type \"" + etype + "\" not currently supported");
             }
 
-            AsnElt ae = AsnElt.Decode(outBytes);
+            AsnElt asnAsRep = null;
+            bool decryptSuccess = false;
+            try
+            {
+                asnAsRep = AsnElt.Decode(decryptedBytes);
+                // Make sure the data has expected value so we know decryption was successful (from kerberos spec: EncASRepPart ::= [APPLICATION 25] )
+                if (asnAsRep.TagValue == 25)
+                {
+                    decryptSuccess = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[X] Error parsing encrypted part of AS-REP: " + ex.Message);
+            }
 
-            EncKDCRepPart encRepPart = new EncKDCRepPart(ae.Sub[0]);
+            if (decryptSuccess == false)
+            {
+                throw new TicketDecryptException($"Failed to decrypt TGT using supplied password/hash. If this TGT was requested with no pre-authentication then the password supplied may be incorrect", ticketType);
+            }
+
+
+            EncKDCRepPart encRepPart = new EncKDCRepPart(asnAsRep.Sub[0]);
 
             // now build the final KRB-CRED structure
             KRB_CRED cred = new KRB_CRED();
 
             // add the ticket
-            cred.tickets.Add(rep.ticket);
+            cred.tickets.Add(asRep.ticket);
 
             // build the EncKrbCredPart/KrbCredInfo parts from the ticket and the data in the encRepPart
 
@@ -620,8 +698,8 @@ namespace Rubeus
             info.prealm = encRepPart.realm;
 
             // [2] pname (user)
-            info.pname.name_type = rep.cname.name_type;
-            info.pname.name_string = rep.cname.name_string;
+            info.pname.name_type = asRep.cname.name_type;
+            info.pname.name_string = asRep.cname.name_string;
 
             // [3] flags
             info.flags = encRepPart.flags;

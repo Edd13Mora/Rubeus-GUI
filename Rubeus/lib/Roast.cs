@@ -21,6 +21,8 @@ namespace Rubeus
             hashcat
         }
 
+        //TODO: Support as-rep roasting without requiring credentials if the user specifies usernames to get TGTs for
+
         public static List<AsRepRoastResult> ASRepRoast(string domain, string userName = "", string OUName = "", string domainController = "", HashFormat format = HashFormat.john, System.Net.NetworkCredential cred = null, string outFile = "", string ldapFilter = "", bool ldaps = false)
         {
             List<AsRepRoastResult> results = new List<AsRepRoastResult>();
@@ -198,7 +200,7 @@ namespace Rubeus
             {
                 // parse the response to an KRB-ERROR
                 KRB_ERROR error = new KRB_ERROR(responseAsn.Sub[0]);
-                throw new RubeusException(String.Format("KRB-ERROR ({0}) : {1}", error.error_code, (Interop.KERBEROS_ERROR)error.error_code));
+                throw KerberosException.FromNativeError(error);
             }
             else // If the response tag was neither AS_REP or ERROR
             {
@@ -276,7 +278,7 @@ namespace Rubeus
                     }
                     catch (Exception ex)
                     {
-                        result.HashData = new TicketHash("ERROR: " + ex.Message,Interop.KERB_ETYPE.unknown);
+                        result.HashData = new TicketHash("Error: " + ex.Message,Interop.KERB_ETYPE.unknown);
                     }
                     results.Add(result);
                 }

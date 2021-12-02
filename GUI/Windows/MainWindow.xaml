@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:RubeusGui"
         xmlns:tabs="clr-namespace:RubeusGui.Windows.Tabs"
         mc:Ignorable="d"
-        Title="Rubeus GUI  -  ALPHA v0.3" Height="740" Width="1060" MinWidth="650" MinHeight="400" SnapsToDevicePixels="True"
+        Title="Rubeus GUI  -  ALPHA v0.4" Height="800" Width="1060" MinWidth="650" MinHeight="400" SnapsToDevicePixels="True"
         WindowStartupLocation="CenterScreen" Loaded="Window_Loaded"
         Icon="/RubeusGui;component/Images/icons8_grand_master_key_colour.ico" Closing="Window_Closing">
     <Window.Resources>

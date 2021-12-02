@@ -106,9 +106,9 @@
     <Compile Include="Domain\DomainSettings.cs" />
     <Compile Include="Domain\KerberoastResult.cs" />
     <Compile Include="Domain\KerberoastSettings.cs" />
+    <Compile Include="Domain\Log.cs" />
     <Compile Include="Domain\TicketHash.cs" />
     <Compile Include="lib\Ask.cs" />
-    <Compile Include="lib\Bruteforcer.cs" />
     <Compile Include="lib\ConsoleTable.cs" />
     <Compile Include="lib\Crypto.cs" />
     <Compile Include="lib\crypto\dh\DiffieHellmanKey.cs" />
@@ -126,6 +126,7 @@
     <Compile Include="lib\Interop\Luid.cs" />
     <Compile Include="lib\Interop\NtException.cs" />
     <Compile Include="lib\KDCKeyAgreement.cs" />
+    <Compile Include="lib\KerberosException.cs" />
     <Compile Include="lib\krb_structures\ADIfRelevant.cs" />
     <Compile Include="lib\krb_structures\ADKerbLocal.cs" />
     <Compile Include="lib\krb_structures\ADWin2KPac.cs" />
@@ -167,6 +168,7 @@
     <Compile Include="lib\krb_structures\pac\UpnDns.cs" />
     <Compile Include="lib\krb_structures\PA_DATA.cs" />
     <Compile Include="lib\krb_structures\PA_ENC_TS_ENC.cs" />
+    <Compile Include="lib\krb_structures\PA_ETYPE_INFO2.cs" />
     <Compile Include="lib\krb_structures\PA_FOR_USER.cs" />
     <Compile Include="lib\krb_structures\PA_PAC_OPTIONS.cs" />
     <Compile Include="lib\krb_structures\PA_S4U_X509_USER.cs" />
@@ -213,8 +215,10 @@
     <Compile Include="lib\Renew.cs" />
     <Compile Include="lib\Reset.cs" />
     <Compile Include="lib\Roast.cs" />
+    <Compile Include="lib\RubeusException.cs" />
     <Compile Include="lib\S4U.cs" />
     <Compile Include="lib\ForgeTicket.cs" />
+    <Compile Include="lib\TicketDecryptException.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

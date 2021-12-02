@@ -117,22 +117,25 @@ namespace Rubeus {
             //}
 
             //Console.WriteLine("tag: {0}", body.Sub[0].Sub[0].TagValue);
+            byte[] valueBytes;
             try
             {
                 type = (Interop.PADATA_TYPE)body.Sub[0].Sub[0].GetInteger();
-                byte[] valueBytes = body.Sub[1].Sub[0].GetOctetString();
+                valueBytes = body.Sub[1].Sub[0].GetOctetString();
             }
             catch
             {
                 type = (Interop.PADATA_TYPE)body.Sub[0].Sub[0].Sub[0].GetInteger();
-                byte[] valueBytes = body.Sub[0].Sub[1].Sub[0].GetOctetString();
+                valueBytes = body.Sub[0].Sub[1].Sub[0].GetOctetString();
             }
 
             switch (type) {
                 case Interop.PADATA_TYPE.PA_PAC_REQUEST:
                     value = new KERB_PA_PAC_REQUEST(AsnElt.Decode(body.Sub[1].Sub[0].CopyValue()));
                     break;
-
+                case Interop.PADATA_TYPE.ETYPE_INFO2:
+                    value = new PA_ETYPE_INFO2(AsnElt.Decode(valueBytes));
+                    break;
                 case Interop.PADATA_TYPE.PK_AS_REP:
                     value = new PA_PK_AS_REP(AsnElt.Decode(body.Sub[1].Sub[0].CopyValue()));
                     break;

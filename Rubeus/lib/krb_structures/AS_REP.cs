@@ -40,12 +40,12 @@ namespace Rubeus
             // AS-REP::= [APPLICATION 11] KDC-REQ
             if (asn_AS_REP.TagValue != (int)Interop.KERB_MESSAGE_TYPE.AS_REP)
             {
-                throw new System.Exception("AS-REP tag value should be 11");
+                throw new RubeusException("AS-REP tag value should be 11");
             }
 
             if ((asn_AS_REP.Sub.Length != 1) || (asn_AS_REP.Sub[0].TagValue != 16))
             {
-                throw new System.Exception("First AS-REP sub should be a sequence");
+                throw new RubeusException("First AS-REP sub should be a sequence");
             }
 
             // extract the KDC-REP out

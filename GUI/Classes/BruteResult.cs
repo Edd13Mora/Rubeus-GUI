@@ -26,6 +26,7 @@ namespace RubeusGui
             UsernameAndPwdValidButPwdExpired,
             UsernameValid,
             UsernameValidButDisabled,
+            UsernameValidButPwdExpired,
             UsernameValidButError,
             UsernameInvalid
         }
@@ -51,11 +52,13 @@ namespace RubeusGui
                     case CredentialStatus.UsernameValidButError:
                         return "Valid username but error encountered: " + ErrorMessage;
                     case CredentialStatus.Error:
-                        return "Error encountered whilst validating username: " + ErrorMessage;
+                        return "Error: " + ErrorMessage;
                     case CredentialStatus.UsernameInvalid:
                         return "Username not found in domain";
                     case CredentialStatus.UsernameAndPwdValidButPwdExpired:
                         return "Valid username and password but password has expired";
+                    case CredentialStatus.UsernameValidButPwdExpired:
+                        return "Valid username but password has expired";
                     default:
                         return "Unknown";
                 }

@@ -208,9 +208,9 @@ namespace Rubeus.Commands
                     return;
                 }
                 if (String.IsNullOrEmpty(certificate))
-                    Ask.TGT(user, domain, hash, encType, outfile, ptt, dc, luid, true, opsec, servicekey, changepw);
+                    Ask.TGTFromHash(user, domain, hash, encType, outfile, ptt, dc, luid, true, opsec, servicekey, changepw);
                 else
-                    Ask.TGT(user, domain, certificate, password, encType, outfile, ptt, dc, luid, true, verifyCerts, servicekey, getCredentials);
+                    Ask.TGTFromCertificate(user, domain, certificate, password, encType, outfile, ptt, dc, luid, true, verifyCerts, servicekey, getCredentials);
 
                 return;
             }

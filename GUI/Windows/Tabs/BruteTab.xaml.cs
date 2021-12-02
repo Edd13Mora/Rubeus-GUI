@@ -57,6 +57,7 @@ namespace RubeusGui.Windows.Tabs
                 List<string> passwords = new List<string>();
                 bool getUsersFromDomain = false;
                 bool useParallel = (bool)ChkParallel.IsChecked;
+                bool skipNoPreAuth = (bool)ChkSkipNoPreAuth.IsChecked;
 
                 // Get username wordlist settings
 
@@ -127,7 +128,7 @@ namespace RubeusGui.Windows.Tabs
                 ProgBar.Visibility = Visibility.Visible;
                 BtnCancel.Visibility = Visibility.Visible;
 
-                System.Threading.Thread bgThread = new System.Threading.Thread(() => RunBrute(domain, getUsersFromDomain, useParallel, usernames, passwords));
+                System.Threading.Thread bgThread = new System.Threading.Thread(() => RunBrute(domain, getUsersFromDomain, useParallel, usernames, passwords,skipNoPreAuth));
                 bgThread.IsBackground = true;
                 bgThread.Start();
             }
@@ -139,7 +140,7 @@ namespace RubeusGui.Windows.Tabs
         }
 
         // Runs on background thread
-        private void RunBrute(DomainSettings domain, bool getUsersFromDomain, bool useParallel, List<string> usernames, List<string> passwords)
+        private void RunBrute(DomainSettings domain, bool getUsersFromDomain, bool useParallel, List<string> usernames, List<string> passwords, bool skipNoPreAuth)
         {
             string errorMessage = string.Empty;
             bool cancelled = false;
@@ -187,7 +188,7 @@ namespace RubeusGui.Windows.Tabs
                 {
                     try
                     {
-                        cancelled = !_brute.Run(domain.DomainName, dc, usernames, passwords, useParallel);
+                        cancelled = !_brute.Run(domain.DomainName, dc, usernames, passwords, useParallel, skipNoPreAuth);
                     }
                     catch (Exception ex)
                     {

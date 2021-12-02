@@ -216,7 +216,6 @@ namespace Rubeus.Commands
                 settings.Domain.Credentials = new System.Net.NetworkCredential(userName, password, domainName);
             }
             Roast.Kerberoast(settings);
-
         }
     }
 }

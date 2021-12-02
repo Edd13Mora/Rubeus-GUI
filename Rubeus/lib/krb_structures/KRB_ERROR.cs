@@ -22,12 +22,8 @@ namespace Rubeus
         //        e-text          [11] KerberosString OPTIONAL,
         //        e-data          [12] OCTET STRING OPTIONAL
         //}
-
-        public KRB_ERROR(byte[] errorBytes)
-        {
-            
-        }
-
+        
+        
         public KRB_ERROR(AsnElt body)
         {
             foreach (AsnElt s in body.Sub)
@@ -67,6 +63,18 @@ namespace Rubeus
                     case 10:
                         sname = new PrincipalName(s.Sub[0]);
                         break;
+                    case 12:
+                        if (e_data == null)
+                        {
+                            e_data = new List<PA_DATA>();
+                        }
+                        foreach (AsnElt paDataItem in s.Sub)
+                        {
+                            byte[] paBytes = paDataItem.GetOctetString();
+                            AsnElt paBody = AsnElt.Decode(paBytes);
+                            e_data.Add(new PA_DATA(paBody));
+                        }
+                        break;
                     default:
                         break;
                 }
@@ -97,12 +105,11 @@ namespace Rubeus
 
         public PrincipalName sname { get; set; }
 
-        // skipping these two for now
+        // skipping this for now
         // e_text
-        // e_data
 
+        public List<PA_DATA> e_data { get; set; }
 
-        //public Ticket[] tickets { get; set; }
         public List<Ticket> tickets { get; set; }
 
         public EncKrbCredPart enc_part { get; set; }

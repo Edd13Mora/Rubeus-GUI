@@ -85,11 +85,8 @@ namespace RubeusGui.Windows.Tabs
                 }
                 if ((bool)ChkOpsec.IsChecked && ((EncryptionDisplayItem)CboInputEncryption.SelectedItem).Encryption != EncryptionType.AES256 && ((EncryptionDisplayItem)CboRequiresEncryption.SelectedItem).Encryption != EncryptionType.AES256)
                 {
-                    if (MessageBox.Show("OpSec mode should use AES 256 encryption to look as legitimate as possible. Are you sure you want to continue using the selected encryption type?", "Not So OpSec",
-                        MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
-                    {
-                        return;
-                    }
+                    MessageBox.Show("OpSec mode must use AES 256 encryption to look as legitimate as possible", "Not So OpSec", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
                 }
 
                 // If no domain was specified and user is asking us to encrypt plaintext password with either of the AES options then tell them we need the domain name for the salt
@@ -101,25 +98,20 @@ namespace RubeusGui.Windows.Tabs
                     MessageBox.Show("When using AES encryption you must specify a domain, as this is used as part of the hash salt", "No Domain Specified", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
-                string hash;
+
                 Rubeus.Interop.KERB_ETYPE etype;
-                if (((EncryptionDisplayItem)CboInputEncryption.SelectedItem).Encryption == EncryptionType.Plaintext)
+                string passwordOrHash = TxtPassword.Text;
+                string username = TxtUsername.Text;
+                bool ptt = (bool)ChkPtt.IsChecked;
+                bool opsec = (bool)ChkOpsec.IsChecked;
+                bool plaintextPassword = ((EncryptionDisplayItem)CboInputEncryption.SelectedItem).Encryption == EncryptionType.Plaintext;
+                if (plaintextPassword)
                 {
                     etype = ((EncryptionDisplayItem)CboRequiresEncryption.SelectedItem).NativeEncryption;
-                    try
-                    {
-                        hash = Rubeus.Helpers.EncryptPassword(domainSettings.DomainName, TxtUsername.Text, TxtPassword.Text, etype);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show("Error encrypting plaintext password with " + etype.ToString() + " : " + ex.Message, "Error Encrypting Password", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
                 }
                 else
                 {
                     etype = ((EncryptionDisplayItem)CboInputEncryption.SelectedItem).NativeEncryption;
-                    hash = TxtPassword.Text;
                 }
 
                 LblExecuteBtn.Text = "Running...";
@@ -130,11 +122,8 @@ namespace RubeusGui.Windows.Tabs
                 TxtTgt.Clear();
                 _lastUsername = String.Empty;
                 _lastTgt = null;
-                string username = TxtUsername.Text;
-                bool ptt = (bool)ChkPtt.IsChecked;
-                bool opsec = (bool)ChkOpsec.IsChecked;
 
-                System.Threading.Thread bgThread = new System.Threading.Thread(() => RunTgtRequest(domainSettings, username, hash, etype, ptt, opsec));
+                System.Threading.Thread bgThread = new System.Threading.Thread(() => RunTgtRequest(domainSettings, username, plaintextPassword, passwordOrHash, etype, ptt, opsec));
                 bgThread.IsBackground = true;
                 bgThread.Start();
             }
@@ -145,13 +134,26 @@ namespace RubeusGui.Windows.Tabs
         }
 
         // Run on background thread
-        private void RunTgtRequest(DomainSettings domain, string username, string passwordHash, Rubeus.Interop.KERB_ETYPE etype, bool ptt, bool opSec)
+        private void RunTgtRequest(DomainSettings domain, string username, bool passwordIsPlaintext, string passwordOrHash, Rubeus.Interop.KERB_ETYPE etype, bool ptt, bool opSec)
         {
             Rubeus.KRB_CRED tgt = null;
             string errorMessage = string.Empty;
             try
             {
-                tgt = Rubeus.Ask.TGT(username, domain.DomainName, passwordHash, etype, String.Empty, ptt, domainController: domain.DomainController, opsec: opSec);
+                if (passwordIsPlaintext)
+                {
+                    // If we're using AES encryption this method will handle getting the correct salt so that the username supplied here does not end up being case sensitive
+                    tgt = Rubeus.Ask.TGTFromPassword(username, domain.DomainName, passwordOrHash, etype, null, ptt, domain.DomainController, opsec: opSec);
+                }
+                else
+                {
+                    // If we only have a hash to work with then we can't use the correct salt to re-encrypt the password so this will mean usernames are case sensitive 
+                    tgt = Rubeus.Ask.TGTFromHash(username, domain.DomainName, passwordOrHash, etype, null, ptt, domain.DomainController, opsec: opSec);
+                }
+            }
+            catch (Rubeus.KerberosException kerbEx)
+            {
+                errorMessage = kerbEx.Message;
             }
             catch (Exception ex)
             {

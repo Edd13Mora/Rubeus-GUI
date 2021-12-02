@@ -43,7 +43,7 @@ namespace RubeusGui
             // Load user preferences and last used domain name etc from XML file
             LoadUserPreferences();
         }
-                
+
         private void MenuItemFileExit_Click(object sender, RoutedEventArgs e)
         {
             this.Close();
@@ -114,7 +114,7 @@ namespace RubeusGui
                 MessageBox.Show("Error saving preferences and recently used settings to XML file: " + ex.Message + "\n You can disable saving recently used settings in Tools -> Options", "Error Saving Preferences", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
-        
+
         // Called by individual tabs to get the global settings from this main window
         public DomainSettings GetDomainSettings()
         {
@@ -149,7 +149,7 @@ namespace RubeusGui
             settings.Ldaps = (bool)ChkLdaps.IsChecked;
             return settings;
         }
-              
+
         private void MenuItemHelpAbout_Click(object sender, RoutedEventArgs e)
         {
             AboutWindow aboutWindow = new AboutWindow();
@@ -182,7 +182,7 @@ namespace RubeusGui
                 ((RubeusTab)tab.Content).ExpandAdvancedOptions = _userPrefs.ShowAdvancedOptionsByDefault;
             }
         }
-               
+
         private void MenuFeedback_Click(object sender, RoutedEventArgs e)
         {
             UiHelpers.LaunchGithubEnhancementUrl();
@@ -192,7 +192,7 @@ namespace RubeusGui
         {
             UiHelpers.LaunchVbScrubTwitterUrl();
         }
-        
+
         private void MenuBugReport_Click(object sender, RoutedEventArgs e)
         {
             UiHelpers.LaunchGithubBugReportUrl();
