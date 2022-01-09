@@ -89,7 +89,7 @@ namespace RubeusGui.Windows.Tabs
                     MessageBox.Show("Please specify an OU distinguished name or select another target option", "No OU Specified", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
-                username = TxtUsername.Text;
+                ou = TxtOu.Text;
             }
             if ((bool)RdoJohn.IsChecked)
             {

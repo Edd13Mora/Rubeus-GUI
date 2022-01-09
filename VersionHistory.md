@@ -12,6 +12,7 @@
 
 - The option "only find users with AES encryption enabled" on the Kerberoasting tab was not working correctly
 - The "supported encryptions" field on the Kerberoasting tab was empty in some scenarios
+- The option to only find users in a specific OU on the AS-REP Roasting tab was not working correctly
 - When exporting hashes from AS-REP Roasting, error messages were also exported
 - If a problem was encountered during initial startup then the process terminated silently without displaying any error message
 
