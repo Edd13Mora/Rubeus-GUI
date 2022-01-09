@@ -101,7 +101,7 @@ namespace Rubeus
         public static byte[] NoPreAuthTgt(string userName, string domain, string keyHash, Interop.KERB_ETYPE etype, string domainController, string outfile, bool ptt, LUID luid = new LUID(), bool describe = false, bool verbose = false, bool opsec = false, string plaintextPassword = null)
         {
             string dcIP = Networking.GetDCIP(domainController, true, domain);
-            if (String.IsNullOrEmpty(dcIP)) { throw new RubeusException("Could not get domain controller IP address for domain " + domain + "\n Please try specifying a DC IP manually"); }
+            if (String.IsNullOrEmpty(dcIP)) { throw new RubeusException("Could not get domain controller IP address for domain " + domain + " Please try specifying a DC IP manually"); }
 
             AS_REQ NoPreAuthASREQ = AS_REQ.NewASReq(userName, domain, etype, opsec);
             byte[] reqBytes = NoPreAuthASREQ.Encode().Encode();

@@ -25,23 +25,37 @@ namespace RubeusGui
 
         public MainWindow()
         {
-            InitializeComponent();
+            try
+            {
+                InitializeComponent();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Unexpected error in application startup: " + ex.Message + "\n" + ex.InnerException?.Message, "Unexpected Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // Redirect all the Rubeus Console.WriteLine calls to a string that we can add to our log
-            Console.SetOut(_outputWriter);
-            Console.SetError(_outputWriter);
-
-            // Give each tab a reference to this main window so that they can get the global settings like domain and username etc 
-            foreach (TabItem tab in TabCtrlMain.Items)
+            try
             {
-                ((RubeusTab)tab.Content).OwnerWindow = this;
-            }
+                // Redirect all the Rubeus Console.WriteLine calls to a string that we can add to our log
+                Console.SetOut(_outputWriter);
+                Console.SetError(_outputWriter);
 
-            // Load user preferences and last used domain name etc from XML file
-            LoadUserPreferences();
+                // Give each tab a reference to this main window so that they can get the global settings like domain and username etc 
+                foreach (TabItem tab in TabCtrlMain.Items)
+                {
+                    ((RubeusTab)tab.Content).OwnerWindow = this;
+                }
+
+                // Load user preferences and last used domain name etc from XML file
+                LoadUserPreferences();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Unexpected error in window load: " + ex.Message + "\n" + ex.InnerException?.Message, "Unexpected Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void MenuItemFileExit_Click(object sender, RoutedEventArgs e)
@@ -115,7 +129,7 @@ namespace RubeusGui
             }
         }
 
-        // Called by individual tabs to get the global settings from this main window
+        // Called by individual tabs to get the global domain settings from this main window
         public DomainSettings GetDomainSettings()
         {
             DomainSettings settings = new DomainSettings();

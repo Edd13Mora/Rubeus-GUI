@@ -34,7 +34,6 @@
                 <RowDefinition Height="27" />
                 <RowDefinition Height="27" />
                 <RowDefinition Height="27" />
-                <RowDefinition Height="27" />
                 <RowDefinition Height="30" />
             </Grid.RowDefinitions>
             <TextBlock Text="Version:" VerticalAlignment="Center" Grid.Row="0" />
@@ -44,15 +43,12 @@
             <TextBlock Text="Me:" VerticalAlignment="Center" Grid.Row="2" Grid.Column="0" />
             <WrapPanel Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Grid.Row="2" Grid.Column="1">
                 <TextBlock><Hyperlink Name="LnkTwitter" Click="LnkTwitter_Click">@VbScrub</Hyperlink></TextBlock>
-                <TextBlock Margin="14,0,0,0"><Hyperlink Name="LnkWebsite" Click="WebsiteLnk_Click">http://VbScrub.com</Hyperlink></TextBlock>
+                <TextBlock Margin="16,0,0,0"><Hyperlink Name="LnkWebsite" Click="WebsiteLnk_Click">http://vbscrub.com</Hyperlink></TextBlock>
             </WrapPanel>
-            <TextBlock Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Grid.Row="3" Grid.Column="1"><Hyperlink Name="LnkGithub" Click="LnkGithub_Click">https://github.com/VbScrub/Rubeus-GUI</Hyperlink></TextBlock>
-            <TextBlock Text="Github:" VerticalAlignment="Center" Grid.Row="3" />
-            <TextBlock Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Grid.Row="3" Grid.Column="1"></TextBlock>
-            <TextBlock Text="Rubeus:" VerticalAlignment="Center" Grid.Row="4" />
-            <TextBlock Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Grid.Row="4" Grid.Column="1"><Hyperlink Name="LnkRubeus" Click="LnkRubeus_Click">https://github.com/GhostPack/Rubeus</Hyperlink></TextBlock>
-            <TextBlock Text="Icons from:" VerticalAlignment="Center" Grid.Row="5" />
-            <TextBlock Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Grid.Row="5" Grid.Column="1"><Hyperlink Name="LnkIcons" Click="LnkIcons_Click">http://icons8.com</Hyperlink></TextBlock>
+            <TextBlock Text="Rubeus:" VerticalAlignment="Center" Grid.Row="3" />
+            <TextBlock Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Grid.Row="3" Grid.Column="1"><Hyperlink Name="LnkRubeus" Click="LnkRubeus_Click">https://github.com/GhostPack/Rubeus</Hyperlink></TextBlock>
+            <TextBlock Text="Icons from:" VerticalAlignment="Center" Grid.Row="4" />
+            <TextBlock Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Grid.Row="4" Grid.Column="1"><Hyperlink Name="LnkIcons" Click="LnkIcons_Click">http://icons8.com</Hyperlink></TextBlock>
 
         </Grid>
 

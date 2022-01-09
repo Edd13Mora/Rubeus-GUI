@@ -115,7 +115,7 @@
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
         <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
         <Setter Property="ScrollViewer.CanContentScroll" Value="true"/>
-        <Setter Property="MinWidth" Value="100"/>
+        <Setter Property="MinWidth" Value="60"/>
         <Setter Property="MinHeight" Value="23"/>
         <Setter Property="Foreground" Value="{StaticResource ForegroundTextColor}"/>
         <Setter Property="Template">

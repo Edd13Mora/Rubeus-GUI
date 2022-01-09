@@ -90,7 +90,7 @@ namespace RubeusGui
                     case CredentialStatus.UsernameAndPwdValidButPwdExpired:
                         return System.Windows.Media.Brushes.LightBlue;
                     default:
-                        //TODO: See if we can get the default text color instead of hard coding white here
+                        //TODO: Get the default text color instead of hard coding white here
                         return System.Windows.Media.Brushes.White;
                 }
             }

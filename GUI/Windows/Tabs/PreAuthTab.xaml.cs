@@ -196,7 +196,7 @@ namespace RubeusGui.Windows.Tabs
                 {
                     var sfd = new Microsoft.Win32.SaveFileDialog();
                     sfd.Filter = "CSV Files (*.csv)|*.csv";
-                    sfd.FileName = "AsRepRoastResults.csv";
+                    sfd.FileName = "ASREP Roast Results.csv";
                     if ((bool)sfd.ShowDialog())
                     {
                         using (StreamWriter writer = new StreamWriter(sfd.FileName, false, new UTF8Encoding(false)))
@@ -204,13 +204,13 @@ namespace RubeusGui.Windows.Tabs
                             writer.WriteLine("\"Username\",\"Hash\",\"Distinguished Name\"");
                             foreach (AsRepRoastResult result in LsvResults.ItemsSource)
                             {
-                                string username = UiHelpers.MakeCsvSafe(result.Username);
-                                string hash = result.HashData?.Hash; hash = UiHelpers.MakeCsvSafe(hash);
-                                string dn = UiHelpers.MakeCsvSafe(result.DistinguishedName);
+                                string username = CsvWriter.MakeCsvSafe(result.Username);
+                                string hash = result.HashData?.Hash; hash = CsvWriter.MakeCsvSafe(hash);
+                                string dn = CsvWriter.MakeCsvSafe(result.DistinguishedName);
                                 writer.WriteLine($"{username},{hash},{dn}");
                             }
                         }
-                        MessageBox.Show("Hashes exported to file successfully", "File Saved Successfully", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("Results exported to file successfully", "File Saved Successfully", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
             }
@@ -235,7 +235,10 @@ namespace RubeusGui.Windows.Tabs
                         {
                             foreach (AsRepRoastResult result in LsvResults.ItemsSource)
                             {
-                                writer.WriteLine(result.HashData?.Hash);
+                                if (result.HashData?.Hash != null && result.HashData.Hash.StartsWith("$"))
+                                {
+                                    writer.WriteLine(result.HashData?.Hash);
+                                }
                             }
                         }
                         MessageBox.Show("Hashes exported to file successfully", "File Saved Successfully", MessageBoxButton.OK, MessageBoxImage.Information);

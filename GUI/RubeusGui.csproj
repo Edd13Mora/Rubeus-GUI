@@ -7,7 +7,7 @@
     <ProjectGuid>{46FB8893-7879-4891-ADEE-3FAC11AC1DD9}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <RootNamespace>RubeusGui</RootNamespace>
-    <AssemblyName>RubeusGui</AssemblyName>
+    <AssemblyName>RubeusGUI</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -104,6 +104,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Classes\Converters\DisabledToIconConverter.cs" />
+    <Compile Include="Classes\CsvWriter.cs" />
     <Compile Include="Classes\GuiBruteForcer.cs" />
     <Compile Include="Classes\BruteResult.cs" />
     <Compile Include="Classes\EncryptionDisplayItem.cs" />
@@ -124,6 +126,9 @@
     </Compile>
     <Compile Include="Windows\Tabs\ComingSoonTab.xaml.cs">
       <DependentUpon>ComingSoonTab.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Windows\Tabs\GoldenTicketTab.xaml.cs">
+      <DependentUpon>GoldenTicketTab.xaml</DependentUpon>
     </Compile>
     <Compile Include="Windows\Tabs\KerberoastTab.xaml.cs">
       <DependentUpon>KerberoastTab.xaml</DependentUpon>
@@ -167,6 +172,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Windows\Tabs\ComingSoonTab.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Windows\Tabs\GoldenTicketTab.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -341,6 +350,16 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\hourglass_16px.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\gold_bars_16px.png" />
+    <Resource Include="Images\silver_bars_16px.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\train_ticket_16px.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\movie_ticket_16px.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

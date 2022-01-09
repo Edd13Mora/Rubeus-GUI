@@ -11,6 +11,7 @@ namespace Rubeus.Domain
         public string Username { get; set; }
         public TicketHash HashData { get; set; }
         public string DistinguishedName { get; set; }
+        public bool IsDisabled { get; set; }
 
     }
 }

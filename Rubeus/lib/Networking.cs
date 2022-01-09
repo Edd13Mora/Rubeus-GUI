@@ -354,29 +354,8 @@ namespace Rubeus
             }
             else // If not using LDAPS
             {
-                DirectoryEntry directoryObject = null;
-                DirectorySearcher searcher = null;
-                try
+                using (DirectoryEntry directoryObject = Networking.GetLdapSearchRoot(cred, OUName, domainController, domain))
                 {
-                    try
-                    {
-                        directoryObject = Networking.GetLdapSearchRoot(cred, OUName, domainController, domain);
-                        searcher = new DirectorySearcher(directoryObject);
-                        // enable LDAP paged search to get all results, by pages of 1000 items
-                        searcher.PageSize = 1000;
-                    }
-                    catch (Exception ex)
-                    {
-                        if (ex.InnerException != null)
-                        {
-                            throw new RubeusException(String.Format("Error creating the domain searcher: {0}", ex.InnerException.Message));
-                        }
-                        else
-                        {
-                            throw new RubeusException(String.Format("Error creating the domain searcher: {0}", ex.Message));
-                        }
-                    }
-
                     // check to ensure that the bind worked correctly
                     try
                     {
@@ -394,45 +373,44 @@ namespace Rubeus
                     {
                         if (!String.IsNullOrEmpty(OUName))
                         {
-                            throw new RubeusException(String.Format("\r\n[X] Error validating the domain searcher for bind path \"{0}\" : {1}", OUName, ex.Message));
+                            throw new RubeusException(String.Format("Error validating the domain searcher for bind path \"{0}\" : {1}", OUName, ex.Message));
                         }
                         else
                         {
-                            throw new RubeusException(String.Format("\r\n[X] Error validating the domain searcher: {0}", ex.Message));
+                            throw new RubeusException(String.Format("Error validating the domain searcher: {0}", ex.Message));
                         }
                     }
-
-                    searcher.Filter = filter;
-                    SearchResultCollection results = null;
-
-                    try
+                    using (DirectorySearcher searcher = new DirectorySearcher(directoryObject))
                     {
-                        results = searcher.FindAll();
-                    }
-                    catch (Exception ex)
-                    {
-                        if (ex.InnerException != null)
+                        // enable LDAP paged search to get all results, by pages of 1000 items
+                        searcher.PageSize = 1000;
+                        searcher.Filter = filter;
+                        try
                         {
-                            throw new RubeusException(String.Format("Error executing the domain searcher: {0}", ex.InnerException.Message));
+                            using (SearchResultCollection results = searcher.FindAll())
+                            {
+                                if (results.Count == 0)
+                                {
+                                    Console.WriteLine("[X] No results returned by LDAP!");
+                                }
+                                else
+                                {
+                                    ActiveDirectoryObjects = Helpers.GetADObjects(results);
+                                }
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            throw new RubeusException(String.Format("Error executing the domain searcher: {0}", ex.Message));
+                            if (ex.InnerException != null)
+                            {
+                                throw new RubeusException(String.Format("Error executing the domain searcher: {0}", ex.InnerException.Message));
+                            }
+                            else
+                            {
+                                throw new RubeusException(String.Format("Error executing the domain searcher: {0}", ex.Message));
+                            }
                         }
                     }
-                    if (results.Count == 0)
-                    {
-                        Console.WriteLine("[X] No results returned by LDAP!");
-                    }
-                    else
-                    {
-                        ActiveDirectoryObjects = Helpers.GetADObjects(results);
-                    }
-                }
-                finally
-                {
-                    directoryObject?.Dispose();
-                    searcher?.Dispose();
                 }
             }
 
@@ -440,14 +418,30 @@ namespace Rubeus
         }
 
         // implementation adapted from https://github.com/tevora-threat/SharpView
-        public static Dictionary<string, Dictionary<string, Object>> GetGptTmplContent(string path, string user = null, string password = null)
+        public static Dictionary<string, Dictionary<string, Object>> GetGptTmplContent(string path, System.Net.NetworkCredential credentials)
         {
             Dictionary<string, Dictionary<string, Object>> IniObject = new Dictionary<string, Dictionary<string, Object>>();
             string sysvolPath = String.Format("\\\\{0}\\SYSVOL", (new System.Uri(path).Host));
+            string username = null;
+            string password = null;
+            if (credentials != null)
+            {
+                if (!String.IsNullOrEmpty(credentials.Domain))
+                {
+                    username = credentials.Domain + "\\" + credentials.UserName;
+                }
+                else
+                {
+                    username = credentials.UserName;
+                }
 
-            int result = AddRemoteConnection(null, sysvolPath, user, password);
+                password = credentials.Password;
+            }
+
+            int result = AddRemoteConnection(null, sysvolPath, username, password);
             if (result != (int)Interop.SystemErrorCodes.ERROR_SUCCESS)
             {
+                // What went wrong? I guess the caller will never know
                 return null;
             }
 
@@ -491,6 +485,13 @@ namespace Rubeus
             return IniObject;
         }
 
+
+        // Comment by VbScrub:
+        // So many questions...
+        // Why are we using a list when we only ever add one item to it?
+        // Why don't we just use "new" like normal instead of "Activator.CreateInstance(typeof(Interop.NetResource))" ?
+        // Why are all of the arguments optional when we need at least one of them for this to work?
+        // Why do we set the RemoteName property to the exact same value twice?
         public static int AddRemoteConnection(string host = null, string path = null, string user = null, string password = null)
         {
             var NetResourceInstance = Activator.CreateInstance(typeof(Interop.NetResource)) as Interop.NetResource;

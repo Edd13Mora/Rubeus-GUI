@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:RubeusGui"
         xmlns:tabs="clr-namespace:RubeusGui.Windows.Tabs"
         mc:Ignorable="d"
-        Title="Rubeus GUI  -  ALPHA v0.4" Height="800" Width="1060" MinWidth="650" MinHeight="400" SnapsToDevicePixels="True"
+        Title="Rubeus GUI  -  ALPHA v0.4.2" Height="800" Width="1060" MinWidth="650" MinHeight="400" SnapsToDevicePixels="True"
         WindowStartupLocation="CenterScreen" Loaded="Window_Loaded"
         Icon="/RubeusGui;component/Images/icons8_grand_master_key_colour.ico" Closing="Window_Closing">
     <Window.Resources>
@@ -71,9 +71,9 @@
                     <WrapPanel x:Name="PnlCredentials" VerticalAlignment="Center" Visibility="Hidden">
                         <Image Stretch="None" Source="/RubeusGui;component/Images/user_shield_16px.png" Margin="0,0,5,0" />
                         <TextBlock Text="Username:" VerticalAlignment="Center" />
-                        <TextBox x:Name="TxtCredUsername" Height="22" Width="150" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="3,0,0,0" ToolTip="Must include domain name (e.g mydomain.local\username)" />
+                        <TextBox x:Name="TxtCredUsername" Height="22" Width="150" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="3,0,0,0" ToolTip="The username to use for LDAP connections to the domain" />
                         <TextBlock Text="Password:" VerticalAlignment="Center" Margin="8,0,0,0" />
-                        <PasswordBox x:Name="TxtCredPassword" Height="22" Width="150" VerticalAlignment="Center" Margin="3,0,0,0" />
+                        <PasswordBox x:Name="TxtCredPassword" Height="22" Width="150" VerticalAlignment="Center" Margin="3,0,0,0" ToolTip="The password to use for LDAP connections to the domain"/>
                     </WrapPanel>
                 </WrapPanel>
 

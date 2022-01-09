@@ -15,6 +15,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Collections.ObjectModel;
 using Rubeus.Domain;
+using System.IO;
 
 namespace RubeusGui.Windows.Tabs
 {
@@ -122,13 +123,16 @@ namespace RubeusGui.Windows.Tabs
 
                 _results.Clear();
                 BtnCancel.IsEnabled = true;
+                BtnExportAll.IsEnabled = true;
+                LsvResults.IsEnabled = true;
+                PnlFilters.IsEnabled = true;
                 LblExecuteBtn.Text = "Running...";
                 ImgExecuteBtn.Source = new BitmapImage(UiHelpers.HourglassIconPath);
                 BtnExecute.IsEnabled = false;
                 ProgBar.Visibility = Visibility.Visible;
                 BtnCancel.Visibility = Visibility.Visible;
 
-                System.Threading.Thread bgThread = new System.Threading.Thread(() => RunBrute(domain, getUsersFromDomain, useParallel, usernames, passwords,skipNoPreAuth));
+                System.Threading.Thread bgThread = new System.Threading.Thread(() => RunBrute(domain, getUsersFromDomain, useParallel, usernames, passwords, skipNoPreAuth));
                 bgThread.IsBackground = true;
                 bgThread.Start();
             }
@@ -203,7 +207,7 @@ namespace RubeusGui.Windows.Tabs
         }
 
         // Called each time a new result should be added to the results listview.
-        // NOTE: Called from background thread or if user chose to use parallel processing then this could be called from multiple threads at once. 
+        // NOTE: Called from background thread, or if user chose to use parallel processing then this could be called from multiple threads at once. 
         // The fact we need to use Dispatcher.Invoke() to execute the method on the UI thread should also mean there's no locking required to make the
         // rest of this thread safe even if called simulatanously by multiple threads
         private void Brute_ResultAdded(object sender, BruteResult result)
@@ -251,8 +255,6 @@ namespace RubeusGui.Windows.Tabs
             // not terminated (shouldn't happen as we set Thread.IsBackground to true, but better safe than sorry)
             if (this.OwnerWindow.IsLoaded)
             {
-                LsvResults.IsEnabled = true;
-                PnlFilters.IsEnabled = true;
                 LblExecuteBtn.Text = "Run";
                 BtnExecute.IsEnabled = true;
                 ImgExecuteBtn.Source = new BitmapImage(UiHelpers.PlayIconPath);
@@ -410,6 +412,39 @@ namespace RubeusGui.Windows.Tabs
             if (LsvResults.SelectedItem != null)
             {
                 UiHelpers.CopyToClipboard(((BruteResult)LsvResults.SelectedItem).StatusDescription);
+            }
+        }
+
+        private void BtnExportAll_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (LsvResults.ItemsSource != null && LsvResults.Items.Count != 0)
+                {
+                    var sfd = new Microsoft.Win32.SaveFileDialog();
+                    sfd.Filter = "CSV Files (*.csv)|*.csv";
+                    sfd.FileName = "Brute Force Results.csv";
+                    if ((bool)sfd.ShowDialog())
+                    {
+                        using (StreamWriter writer = new StreamWriter(sfd.FileName, false, new UTF8Encoding(false)))
+                        {
+                            writer.WriteLine("\"Username\",\"Password\",\"Details\",\"TGT (base64)\"");
+                            foreach (BruteResult result in LsvResults.ItemsSource)
+                            {
+                                string username = CsvWriter.MakeCsvSafe(result.Username);
+                                string password = CsvWriter.MakeCsvSafe(result.Password);
+                                string details = CsvWriter.MakeCsvSafe(result.StatusDescription);
+                                string tgt = CsvWriter.MakeCsvSafe(result.TgtBase64);
+                                writer.WriteLine($"{username},{password},{details},{tgt}");
+                            }
+                        }
+                        MessageBox.Show("Results exported to file successfully", "File Saved Successfully", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error saving results to file: " + ex.Message, "Error Exporting Results", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

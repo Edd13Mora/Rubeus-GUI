@@ -103,7 +103,7 @@ namespace Rubeus
         // from https://tools.ietf.org/html/rfc3961
         public enum KERB_ETYPE : Int32
         {
-            unknown = 0,
+            unknown = 0, // <-- Added this to be more readable (instead of always relying on subkey_keymaterial to represent no user selection)
             des_cbc_crc = 1,
             des_cbc_md4 = 2,
             des_cbc_md5 = 3,

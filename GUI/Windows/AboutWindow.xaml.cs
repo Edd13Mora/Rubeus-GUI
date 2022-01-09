@@ -26,7 +26,7 @@ namespace RubeusGui
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             LblVersion.Text = UiHelpers.GetAppVersionString();
-            LblBuildDate.Text = "2nd December 2021"; // TODO: Update build date label before compiling
+            LblBuildDate.Text = "9th January 2022"; // TODO: Update build date label before compiling
         }
 
         private void WebsiteLnk_Click(object sender, RoutedEventArgs e)
@@ -54,9 +54,5 @@ namespace RubeusGui
             UiHelpers.LaunchUrl("http://icons8.com");
         }
 
-        private void LnkGithub_Click(object sender, RoutedEventArgs e)
-        {
-            UiHelpers.LaunchGithubMainUrl();
-        }
     }
 }

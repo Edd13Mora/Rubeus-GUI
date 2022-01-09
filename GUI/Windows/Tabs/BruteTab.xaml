@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:RubeusGui.Windows.Tabs"
              mc:Ignorable="d" 
-             d:DesignHeight="550" d:DesignWidth="990">
+             d:DesignHeight="650" d:DesignWidth="990">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -104,7 +104,7 @@
                 </StackPanel>
 
                 <WrapPanel Margin="0,28,0,0" HorizontalAlignment="Left" DockPanel.Dock="Bottom">
-                    <Button x:Name="BtnExecute" Width="130" Height="23" Click="BtnExecute_Click" ToolTip="Runs a Rubeus operation based on the currently selected tab" >
+                    <Button x:Name="BtnExecute" Width="130" Height="23" Click="BtnExecute_Click" ToolTip="Start the brute force attack">
                         <StackPanel Orientation="Horizontal" Margin="-2,0,0,0">
                             <Image x:Name="ImgExecuteBtn" Stretch="None" VerticalAlignment="Center" Source="/RubeusGui;component/Images/play_16px.png" Margin="0,0,4,0" />
                             <TextBlock x:Name="LblExecuteBtn" Text="Run" VerticalAlignment="Center" />
@@ -138,7 +138,12 @@
 
                 </WrapPanel>
             </StackPanel>
-            <ListView x:Name="LsvResults" Margin="0,10,0,10" MinHeight="90" SelectionMode="Single" IsEnabled="False">
+            <WrapPanel x:Name="PnlExport" DockPanel.Dock="Bottom" HorizontalAlignment="Left" Margin="0,8,0,12">
+                <Button x:Name="BtnExportAll" Margin="0,0,0,0" Height="23" Width="130" ToolTip="Save results table to CSV file. Only includes items that are visible with the current filter" Click="BtnExportAll_Click" IsEnabled="False">
+                    <TextBlock Text="Export Results" />
+                </Button>
+            </WrapPanel>
+            <ListView x:Name="LsvResults" Margin="0,10,0,0" MinHeight="90" SelectionMode="Single" IsEnabled="False">
                 <ListView.ContextMenu>
                     <ContextMenu x:Name="CtxResultsListView">
                         <MenuItem x:Name="CtxItemCopyUsernameAndPassword" Header="Copy Username &amp; Password" Click="CtxItemCopyUsernameAndPassword_Click" />

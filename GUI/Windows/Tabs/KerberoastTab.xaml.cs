@@ -21,6 +21,8 @@ namespace RubeusGui.Windows.Tabs
 
     {
 
+        //TODO: Add option to exclude AES accounts (change existing AES checkbox to drop down?)
+
         public KerberoastTab()
         {
             InitializeComponent();
@@ -191,7 +193,7 @@ namespace RubeusGui.Windows.Tabs
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Please specify a valid number of results to limit to", "Invalid Results Limit", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Please specify a valid number of results to limit to.\n\n" + ex.Message, "Invalid Results Limit", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
                 if ((bool)RdoEnterprise.IsChecked) { settings.Enterprise = true; }
@@ -318,13 +320,13 @@ namespace RubeusGui.Windows.Tabs
                             writer.WriteLine("\"Username\",\"Hash\",\"Hash Encrypted With\",\"Supported Encryptions\",\"SPN\",\"Distinguished Name\",\"Password Last Set\"");
                             foreach (KerberoastResult result in LsvResults.ItemsSource)
                             {
-                                string username = UiHelpers.MakeCsvSafe(result.Username);
-                                string hash = result.HashData?.Hash; hash = UiHelpers.MakeCsvSafe(hash);
-                                string hashEnc = result.HashData?.EncryptionString; hashEnc = UiHelpers.MakeCsvSafe(hashEnc);
-                                string supportedEnc = UiHelpers.MakeCsvSafe(result.SupportedEncryptionString);
-                                string spn = UiHelpers.MakeCsvSafe(result.ServicePrincipalName);
-                                string dn = UiHelpers.MakeCsvSafe(result.DistinguishedName);
-                                string pwdLastSet = result.PasswordLastSet?.ToString(); pwdLastSet = UiHelpers.MakeCsvSafe(pwdLastSet);
+                                string username = CsvWriter.MakeCsvSafe(result.Username);
+                                string hash = result.HashData?.Hash; hash = CsvWriter.MakeCsvSafe(hash);
+                                string hashEnc = result.HashData?.EncryptionString; hashEnc = CsvWriter.MakeCsvSafe(hashEnc);
+                                string supportedEnc = CsvWriter.MakeCsvSafe(result.SupportedEncryptionString);
+                                string spn = CsvWriter.MakeCsvSafe(result.ServicePrincipalName);
+                                string dn = CsvWriter.MakeCsvSafe(result.DistinguishedName);
+                                string pwdLastSet = result.PasswordLastSet?.ToString(); pwdLastSet = CsvWriter.MakeCsvSafe(pwdLastSet);
                                 writer.WriteLine($"{username},{hash},{hashEnc},{supportedEnc},{spn},{dn},{pwdLastSet}");
                             }
                         }

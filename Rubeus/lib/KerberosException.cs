@@ -8,6 +8,9 @@ namespace Rubeus
 {
     public class KerberosException : RubeusException
     {
+
+        // Important to throw KerberosErrorException instead of general exception in some places because other code relies on catching this exception type specifically
+
         public Interop.KERBEROS_ERROR ErrorType { get; set; }
         public long ErrorCode { get; set; }
         public DateTime ServerTime { get; set; }
@@ -18,8 +21,6 @@ namespace Rubeus
             : base(message)
         {
         }
-
-        // Important to throw KerberosErrorException instead of general exception in some places because other code relies on catching this exception type specifically
 
         public static KerberosException FromNativeError(KRB_ERROR krbError)
         {

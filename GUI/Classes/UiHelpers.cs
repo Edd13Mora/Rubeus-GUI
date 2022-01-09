@@ -12,18 +12,6 @@ namespace RubeusGui
         public static Uri HourglassIconPath => new Uri("pack://application:,,,/RubeusGui;component/images/hourglass_16px.png");
         public static Uri PlayIconPath => new Uri("pack://application:,,,/RubeusGui;component/images/play_16px.png");
 
-        public static string MakeCsvSafe(string value)
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                return "\" \"";
-            }
-            else
-            {
-                return "\"" + value.Replace("\"", "\"\"") + "\"";
-            }
-        }
-
         public static void CopyToClipboard(string text)
         {
             if (string.IsNullOrEmpty(text))

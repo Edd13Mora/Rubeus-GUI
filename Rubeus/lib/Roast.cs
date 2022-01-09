@@ -96,6 +96,11 @@ namespace Rubeus
                     {
                         currentResult.HashData = GetASRepHash(samAccountName, domain, domainController, format, outFile);
                     }
+                    catch (KerberosException kerbEx) when (kerbEx.ErrorType == Interop.KERBEROS_ERROR.KDC_ERR_CLIENT_REVOKED)
+                    {
+                        currentResult.HashData = new TicketHash("Account is disabled or locked out", Interop.KERB_ETYPE.unknown);
+                        currentResult.IsDisabled = true;
+                    }
                     catch (Exception ex)
                     {
                         currentResult.HashData = new TicketHash("Error: " + ex.Message, Interop.KERB_ETYPE.unknown);
