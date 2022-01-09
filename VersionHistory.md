@@ -1,6 +1,6 @@
 ## Rubeus GUI - Version History
 
-#### Version 0.4.2
+### Version 0.4.2
 
 **Enhancements**
 
@@ -15,7 +15,7 @@
 - When exporting hashes from AS-REP Roasting, error messages were also exported
 - If a problem was encountered during initial startup then the process terminated silently without displaying any error message
 
-#### Version 0.4.0
+### Version 0.4.0
 
 **Enhancements**
 
